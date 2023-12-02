@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -23,4 +24,12 @@ func MustReadFileAsString(name string) string {
 func MustReadFileAsLines(name string) []string {
 	s := MustReadFileAsString(name)
 	return strings.Split(s, "\n")
+}
+
+func MustAtoI(a string) int {
+	i, err := strconv.Atoi(a)
+	if err != nil {
+		LogfErrorAndExit(err, "converting string to int")
+	}
+	return i
 }
