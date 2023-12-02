@@ -89,6 +89,8 @@ func numStrToInt(numStr string) (int, error) {
 // string, and returns it as an int, along with the remaining string to the right
 // of the popped num. Returns -1 to indicate that there are no more valid numbers
 // in the string (or the string is exhausted)
+// EXCEPT BY "POP" I GUESS WE NOW MEAN "JUST MAKE IT SO A SUBSEQUENT REGEX WON'T FIND IT—
+// I.E. JUST TAKE OFF THE FIRST CHARACTER I GUESS. SIGHHHH.
 func consumeFirstNumber(input string) (num int, rest string, err error) {
 	idx := numberRe.FindStringIndex(input)
 	if len(idx) == 0 {
@@ -96,18 +98,12 @@ func consumeFirstNumber(input string) (num int, rest string, err error) {
 		return -1, input, nil
 	}
 	numStr := input[idx[0]:idx[1]]
-	if len(numStr) == 1 {
-		// a single-character result is (hopefully!) just a digit
-		num = utils.MustAtoI(numStr)
-	} else {
-		var ok bool
-		num, ok = numberStringsToInt[numStr]
-		if !ok {
-			return -1, "",
-				errors.New(fmt.Sprintf("couldn't find int corresponding to string '%s'", numStr))
-		}
-	}
-	return num, input[idx[1]:], nil
+	num, err = numStrToInt(numStr)
+
+	// "rest" here just means "the string modified such that the num we just found
+	// won't be picked up by the next pass of this func", so just chop off the first char
+	// of the found number.
+	return num, input[idx[0]+1:], err
 }
 
 // getAllNumbers finds all representations of numbers (digits or strings) in order

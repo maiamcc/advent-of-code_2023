@@ -30,11 +30,11 @@ func TestConsumeFirstNumber(t *testing.T) {
 	cases := map[string]ExpectedNumStr{ // map input to expected output
 		"1hello2":      {1, "hello2"},
 		"hel1lo2world": {1, "lo2world"},
-		"nonumbers":    {-1, ""},
-		"sixnine":      {6, "nine"},
-		"eightwo":      {8, "wo"},
+		"nonumbers":    {-1, "nonumbers"},
+		"sixnine":      {6, "ixnine"}, // sigh
+		"eightwo":      {8, "ightwo"}, // sigh
 		"stuff5six":    {5, "six"},
-		"stuffsix5":    {6, "5"},
+		"stuffsix5":    {6, "ix5"}, // sigh
 	}
 
 	for input, expected := range cases {
@@ -55,7 +55,7 @@ func TestGetAllNumbers(t *testing.T) {
 		"321stuff":     {3, 2, 1},
 		"nonumbers":    {},
 		"sixnine":      {6, 9},
-		"eightwo":      {8},
+		"eightwo":      {8, 2}, // this is the case that fucks you up!
 		"stuff5six":    {5, 6},
 		"stuffsix5":    {6, 5},
 	}
