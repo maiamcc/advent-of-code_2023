@@ -70,6 +70,20 @@ func getNumericChars(s string) []string {
 	return res
 }
 
+// numStrToInt converts a string representation of a digit (e.g. either "1" or "one") to an int
+func numStrToInt(numStr string) (int, error) {
+	if len(numStr) == 1 {
+		// a single-character result is (hopefully!) just a digit
+		return strconv.Atoi(numStr)
+	} else {
+		num, ok := numberStringsToInt[numStr]
+		if !ok {
+			return -1, errors.New(fmt.Sprintf("couldn't find int corresponding to string '%s'", numStr))
+		}
+		return num, nil
+	}
+}
+
 // consumeFirstNumber finds the first representation of a number in the given
 // string (may be numeric or spelled out, e.g. "1" or "one"), pops it from the
 // string, and returns it as an int, along with the remaining string to the right
