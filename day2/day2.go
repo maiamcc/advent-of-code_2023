@@ -19,7 +19,17 @@ func main() {
 }
 
 func partOne(inputLines []string) int {
-	return len(inputLines)
+	total := 0
+	for _, ln := range inputLines {
+		g, err := parseGame(ln)
+		if err != nil {
+			utils.LogfErrorAndExit(err, "parsing line '%s'", ln)
+		}
+		if g.possibleWith(12, 13, 14) {
+			total += g.id
+		}
+	}
+	return total
 }
 
 func partTwo(inputLines []string) int {
@@ -36,9 +46,26 @@ func (rnd round) isEmpty() bool {
 	return rnd.numRed == 0 && rnd.numBlue == 0 && rnd.numGreen == 0
 }
 
+// possibleWith indicates whether the receiver round would be possible with
+// the given number of red, green, and blue blocks.
+func (rnd round) possibleWith(red int, green int, blue int) bool {
+	return rnd.numRed <= red && rnd.numGreen <= green && rnd.numBlue <= blue
+}
+
 type game struct {
 	id     int
 	rounds []round
+}
+
+// possibleWith indicates whether the receiver game would be possible with
+// the given number of red, green, and blue blocks.
+func (g game) possibleWith(red int, green int, blue int) bool {
+	for _, rnd := range g.rounds {
+		if !rnd.possibleWith(red, green, blue) {
+			return false
+		}
+	}
+	return true
 }
 
 func numResultFromRe(input string, re *regexp.Regexp) int {
@@ -49,6 +76,7 @@ func numResultFromRe(input string, re *regexp.Regexp) int {
 	}
 	return utils.MustAtoI(res[1])
 }
+
 func parseRound(input string) round {
 	return round{
 		numRed:   numResultFromRe(input, redRe),
