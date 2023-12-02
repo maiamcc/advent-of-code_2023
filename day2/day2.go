@@ -15,7 +15,7 @@ var gameIdRe = regexp.MustCompile("Game (\\d+)")
 func main() {
 	inputLines := utils.MustReadFileAsLines("day2/input.txt")
 	fmt.Println("The answer to Part One is:", partOne(inputLines))
-	//fmt.Println("The answer to Part Two is:", partTwo(inputLines))
+	fmt.Println("The answer to Part Two is:", partTwo(inputLines))
 }
 
 func partOne(inputLines []string) int {
@@ -33,7 +33,16 @@ func partOne(inputLines []string) int {
 }
 
 func partTwo(inputLines []string) int {
-	return len(inputLines)
+	total := 0
+	for _, ln := range inputLines {
+		g, err := parseGame(ln)
+		if err != nil {
+			utils.LogfErrorAndExit(err, "parsing line '%s'", ln)
+		}
+		minSet := g.minSet()
+		total += minSet.power()
+	}
+	return total
 }
 
 type round struct {
@@ -52,6 +61,10 @@ func (rnd round) possibleWith(red int, green int, blue int) bool {
 	return rnd.numRed <= red && rnd.numGreen <= green && rnd.numBlue <= blue
 }
 
+func (rnd round) power() int {
+	return rnd.numRed * rnd.numGreen * rnd.numBlue
+}
+
 type game struct {
 	id     int
 	rounds []round
@@ -66,6 +79,25 @@ func (g game) possibleWith(red int, green int, blue int) bool {
 		}
 	}
 	return true
+}
+
+// minSet returns the minimum number of red/green/blue cubes needed to play the receiver game.
+// (We return this info as a round b/c it's the easiest way of storing info about r/g/b cubes lol.)
+func (g game) minSet() round {
+	var minRed, minGreen, minBlue int
+	for _, rnd := range g.rounds {
+		if rnd.numRed > minRed {
+			minRed = rnd.numRed
+		}
+		if rnd.numGreen > minGreen {
+			minGreen = rnd.numGreen
+		}
+
+		if rnd.numBlue > minBlue {
+			minBlue = rnd.numBlue
+		}
+	}
+	return round{minRed, minGreen, minBlue}
 }
 
 func numResultFromRe(input string, re *regexp.Regexp) int {
