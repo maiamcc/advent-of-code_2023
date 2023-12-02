@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func LogfErrorAndExit(err error, msg string, a ...any) {
+func LogfErrorAndExit(err error, msg string, a ...interface{}) {
 	msgFormatted := fmt.Sprintf(msg, a...)
 	fmt.Printf("%s\n\t%v", msgFormatted, err)
 	os.Exit(1)
