@@ -100,20 +100,11 @@ func (g game) minSet() round {
 	return round{minRed, minGreen, minBlue}
 }
 
-func numResultFromRe(input string, re *regexp.Regexp) int {
-	res := re.FindStringSubmatch(input)
-	if len(res) == 0 {
-		// no match
-		return 0
-	}
-	return utils.MustAtoI(res[1])
-}
-
 func parseRound(input string) round {
 	return round{
-		numRed:   numResultFromRe(input, redRe),
-		numGreen: numResultFromRe(input, greenRe),
-		numBlue:  numResultFromRe(input, blueRe),
+		numRed:   utils.NumResultFromRe(input, redRe),
+		numGreen: utils.NumResultFromRe(input, greenRe),
+		numBlue:  utils.NumResultFromRe(input, blueRe),
 	}
 }
 
@@ -122,7 +113,7 @@ func parseGame(input string) (game, error) {
 	if len(parts) != 2 {
 		return game{}, fmt.Errorf("unexpected num parts when splitting input string '%s' on colon", input)
 	}
-	gameId := numResultFromRe(parts[0], gameIdRe)
+	gameId := utils.NumResultFromRe(parts[0], gameIdRe)
 	if gameId == 0 {
 		return game{}, fmt.Errorf("couldn't parse game id from input string '%s", input)
 	}

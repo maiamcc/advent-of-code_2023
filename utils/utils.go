@@ -3,13 +3,18 @@ package utils
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 func LogfErrorAndExit(err error, msg string, a ...interface{}) {
 	msgFormatted := fmt.Sprintf(msg, a...)
-	fmt.Printf("%s\n\t%v", msgFormatted, err)
+	if err != nil {
+		fmt.Printf("%s\n\t%v", msgFormatted, err)
+	} else {
+		fmt.Printf("%s\n\t", msgFormatted)
+	}
 	os.Exit(1)
 }
 
@@ -40,4 +45,35 @@ func MustRune(s string) rune {
 		fmt.Printf("string %s should have contained a single rune but was multiple", s)
 	}
 	return runes[0]
+}
+
+func SplitIntoExpectedParts(s string, sep string, expectedParts int) ([]string, error) {
+	parts := strings.Split(s, sep)
+	if len(parts) != expectedParts {
+		return nil, fmt.Errorf("expected %d parts when splitting string '%s' on sep '%s' but got %d: %+v",
+			expectedParts, s, sep, len(parts), parts)
+	}
+	return parts, nil
+}
+
+func NumResultFromRe(s string, re *regexp.Regexp) int {
+	res := re.FindStringSubmatch(s)
+	if len(res) == 0 {
+		// no match
+		return 0
+	}
+	return MustAtoI(res[1])
+}
+
+func MustStringsToInts(s []string) []int {
+	var res []int
+	for _, num := range s {
+		// account for wonky spaces / empty
+		num = strings.TrimSpace(num)
+		if num == "" {
+			continue
+		}
+		res = append(res, MustAtoI(num))
+	}
+	return res
 }
