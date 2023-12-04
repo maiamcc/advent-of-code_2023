@@ -56,11 +56,11 @@ func MustMatrix(input []string) Matrix {
 }
 
 func (m Matrix) Get(x int, y int) (Cell, error) {
-	if x >= m.NumCols {
-		return Cell{}, fmt.Errorf("x value %d greater than maximum valid x value %d", x, m.NumCols-1)
+	if x < 0 || x >= m.NumCols {
+		return Cell{}, fmt.Errorf("invalid x value %d (must be 0 <= x <= %d)", x, m.NumCols-1)
 	}
-	if y >= m.NumRows {
-		return Cell{}, fmt.Errorf("y value %d greater than maximum valid y value %d", y, m.NumRows-1)
+	if y < 0 || y >= m.NumRows {
+		return Cell{}, fmt.Errorf("invalid y value %d (must be 0 <= y <= %d)", y, m.NumRows-1)
 	}
 	return m.Cells[y][x], nil
 }
@@ -81,8 +81,10 @@ type Cell struct {
 	Val string
 }
 
+func (c Cell) Coordinates() Coord {
+	return Coord{c.X, c.Y}
+}
 func (c Cell) AsInt() (val int, ok bool) {
 	i, err := strconv.Atoi(c.Val)
 	return i, err == nil
-
 }

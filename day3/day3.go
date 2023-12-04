@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/maiamcc/advent-of-code_2023/utils"
+	"strconv"
 	"unicode"
 )
 
@@ -15,14 +16,17 @@ func main() {
 func partOne(inputLines []string) int {
 	total := 0
 	matrix := utils.MustMatrix(inputLines)
-	symbolCoords := coordsForSymbols(matrix)
-	symbolAdjacentCoords := getAllAdjacentCoords(symbolCoords)
-	for _, coord := range symbolAdjacentCoords {
-		cell, err := matrix.Get(coord.X, coord.Y)
+	numCells := numbersForRow(matrix.Flatten()) // we can actually analyze the whole matrix at once, neat!
+	for _, num := range numCells {
+		isPartNum, err := isPartNumber(matrix, num)
 		if err != nil {
-			utils.LogfErrorAndExit(err, "getting cell at (%d, %d)", coord.X, coord.Y)
+			utils.LogfErrorAndExit(err, "checking for part num")
 		}
-		if i, ok := cell.AsInt(); ok {
+		if isPartNum {
+			i, err := num.asInt()
+			if err != nil {
+				utils.LogfErrorAndExit(err, "this should be a valid int")
+			}
 			total += i
 		}
 	}
@@ -67,16 +71,85 @@ func dedupeCoords(coords []utils.Coord) []utils.Coord {
 	return unique
 }
 
-// coordsForSymbols returns all coordinates representing (non-period) symbols.
-// Current implementation is: non-numeric, non-period values. If alphabetical values show up we're SOL.
-func coordsForSymbols(matrix utils.Matrix) []utils.Coord {
+// A list of adjacent cells representing a number (with each cell represents a digit)
+type numberCells []utils.Cell
+
+func (num numberCells) coords() []utils.Coord {
 	var coords []utils.Coord
-	for _, cell := range matrix.Flatten() {
-		if !unicode.IsNumber(utils.MustRune(cell.Val)) && cell.Val != "." {
-			coords = append(coords, utils.Coord{X: cell.X, Y: cell.Y})
-		}
+	for _, cell := range num {
+		coords = append(coords, cell.Coordinates())
 	}
 	return coords
+}
+
+func (num numberCells) asInt() (int, error) {
+	// nb: don't verify they're adjacent, assume we did it right lol
+	var s string
+	for _, cell := range num {
+		s += cell.Val
+	}
+	return strconv.Atoi(s)
+}
+
+// numbersForRow returns an array of Cell arrays (each of the latter
+// representing a series of horizontally adjacent cells containing digits,
+// which together can be taken to represent a number)
+func numbersForRow(row []utils.Cell) []numberCells {
+	var allNumberCells []utils.Cell
+	for _, cell := range row {
+		if _, ok := cell.AsInt(); ok {
+			allNumberCells = append(allNumberCells, cell)
+		}
+	}
+	if len(allNumberCells) == 0 {
+		return []numberCells{}
+	}
+
+	var numbers []numberCells
+	var curNum []utils.Cell
+	prevXCoord := allNumberCells[0].X - 1 // make sure first loop below adds first number cell to the array
+	for _, cell := range allNumberCells {
+		if cell.X == prevXCoord+1 {
+			// This cell is adjacent to the previous number cell, i.e. it's part of the same number
+			curNum = append(curNum, cell)
+		} else {
+			// otherwise, it's the start of a new number; add the number we've
+			// been accumulating to the return array and start a new one
+			numbers = append(numbers, curNum)
+			curNum = []utils.Cell{cell}
+		}
+		prevXCoord = cell.X
+	}
+	// add whatever number we were working on before to the return array
+	numbers = append(numbers, curNum)
+	return numbers
+}
+
+func isSymbol(matrix utils.Matrix, coord utils.Coord) bool {
+	cell, err := matrix.Get(coord.X, coord.Y)
+	if err != nil {
+		// ehh, implementation is such that we might get passed bunk coordinates from our
+		// overeager adjacent coordinate finding. If it's not valid, just return false
+		// instead of erroring out.
+		return false
+	}
+	// Just checking if it's a digit or a period. If letters are possible in the grid,
+	// will have to change this.
+	return !unicode.IsNumber(utils.MustRune(cell.Val)) && cell.Val != "."
+}
+
+func anyIsSymbol(matrix utils.Matrix, coords []utils.Coord) (bool, error) {
+	for _, coord := range coords {
+		if isSymbol(matrix, coord) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func isPartNumber(matrix utils.Matrix, numCells numberCells) (bool, error) {
+	adjacentCoords := getAllAdjacentCoords(numCells.coords())
+	return anyIsSymbol(matrix, adjacentCoords)
 }
 
 func partTwo(inputLines []string) int {

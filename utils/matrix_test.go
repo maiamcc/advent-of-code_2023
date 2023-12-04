@@ -54,6 +54,8 @@ func TestMatrix_Get(t *testing.T) {
 		{2, 3, "l"},
 		{0, 6, ""},
 		{3, 1, ""},
+		{1, -1, ""},
+		{-1, 1, ""},
 	}
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("(%d, %d)", c.x, c.y), func(t *testing.T) {
