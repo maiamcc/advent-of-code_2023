@@ -33,3 +33,11 @@ func MustAtoI(a string) int {
 	}
 	return i
 }
+
+func MustRune(s string) rune {
+	runes := []rune(s)
+	if len(runes) != 1 {
+		fmt.Printf("string %s should have contained a single rune but was multiple", s)
+	}
+	return runes[0]
+}
