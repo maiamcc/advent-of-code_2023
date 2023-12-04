@@ -160,7 +160,7 @@ func numbersForRow(row []utils.Cell) []numberCells {
 	return numbers
 }
 
-func hasValue(matrix utils.Matrix, coord utils.Coord, checker func(val string) bool) bool {
+func cellAtCoordHasValue(matrix utils.Matrix, coord utils.Coord, checker func(val string) bool) bool {
 	cell, err := matrix.GetByCoord(coord)
 	if err != nil {
 		// ehh, implementation is such that we might get passed bunk coordinates from our
@@ -171,7 +171,7 @@ func hasValue(matrix utils.Matrix, coord utils.Coord, checker func(val string) b
 	return checker(cell.Val)
 }
 func isSymbol(matrix utils.Matrix, coord utils.Coord) bool {
-	return hasValue(matrix, coord, func(val string) bool {
+	return cellAtCoordHasValue(matrix, coord, func(val string) bool {
 		return !unicode.IsNumber(utils.MustRune(val)) && val != "."
 	})
 }
@@ -185,12 +185,17 @@ func anyIsSymbol(matrix utils.Matrix, coords []utils.Coord) bool {
 	return false
 }
 
+func isPartNumber(matrix utils.Matrix, numCells numberCells) bool {
+	adjacentCoords := getAllAdjacentCoords(numCells.coords())
+	return anyIsSymbol(matrix, adjacentCoords)
+}
+
 // filterCellsWithValue returns the cells at the given coordinates IF the cell
 // contains a value as determined by the checker func.
 func filterCellsWithValue(matrix utils.Matrix, coords []utils.Coord, checker func(val string) bool) []utils.Cell {
 	var filtered []utils.Cell
 	for _, coord := range coords {
-		if hasValue(matrix, coord, checker) {
+		if cellAtCoordHasValue(matrix, coord, checker) {
 			cell, _ := matrix.GetByCoord(coord) // we just got this coord, we know it's kosher, urk
 			filtered = append(filtered, cell)
 		}
@@ -202,11 +207,6 @@ func getPossibleGearCells(matrix utils.Matrix, coords []utils.Coord) []utils.Cel
 	return filterCellsWithValue(matrix, coords, func(val string) bool {
 		return val == "*"
 	})
-}
-
-func isPartNumber(matrix utils.Matrix, numCells numberCells) bool {
-	adjacentCoords := getAllAdjacentCoords(numCells.coords())
-	return anyIsSymbol(matrix, adjacentCoords)
 }
 
 func adjacentGearForNum(matrix utils.Matrix, numCells numberCells) (result utils.Cell, ok bool) {
@@ -222,5 +222,4 @@ func adjacentGearForNum(matrix utils.Matrix, numCells numberCells) (result utils
 		return possibleGears[0], true
 	}
 	return utils.Cell{}, false
-
 }
