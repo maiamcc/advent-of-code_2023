@@ -50,3 +50,43 @@ func TestGame_Score(t *testing.T) {
 	}
 	assert.Equal(t, 8, g.score())
 }
+
+func TestNewCardStack(t *testing.T) {
+
+}
+func TestCardStack_ScoreGameWithId(t *testing.T) {
+	cs := cardStack{
+		game{id: 0, count: 0},
+		game{id: 1, count: 3},
+		game{id: 2, count: 3,
+			winningNums: utils.NewIntSet([]int{13, 32, 20, 16, 61}),
+			numsOnCard:  []int{16, 3, 777, 12, 93, 61, 82, 36}}, // 2 winners
+		game{id: 3, count: 6},
+		game{id: 4, count: 2},
+		game{id: 5, count: 1},
+	}
+	expected := cardStack{
+		game{id: 0, count: 0},
+		game{id: 1, count: 3},
+		game{id: 2, count: 3,
+			winningNums: utils.NewIntSet([]int{13, 32, 20, 16, 61}),
+			numsOnCard:  []int{16, 3, 777, 12, 93, 61, 82, 36}},
+		game{id: 3, count: 9},
+		game{id: 4, count: 5},
+		game{id: 5, count: 1},
+	}
+	cs.scoreGameWithId(2)
+	assert.Equal(t, expected, cs)
+}
+
+func TestCardStack_TotalCards(t *testing.T) {
+	cs := cardStack{
+		game{id: 0, count: 0},
+		game{id: 1, count: 3},
+		game{id: 2, count: 3},
+		game{id: 3, count: 6},
+		game{id: 4, count: 2},
+		game{id: 5, count: 1},
+	}
+	assert.Equal(t, 15, cs.totalCards())
+}
