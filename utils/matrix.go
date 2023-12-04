@@ -65,6 +65,10 @@ func (m Matrix) Get(x int, y int) (Cell, error) {
 	return m.Cells[y][x], nil
 }
 
+func (m Matrix) GetByCoord(c Coord) (Cell, error) {
+	return m.Get(c.X, c.Y)
+}
+
 // Flatten returns a list containing all the cells in the matrix
 // such that they can be iterated over
 func (m Matrix) Flatten() []Cell {

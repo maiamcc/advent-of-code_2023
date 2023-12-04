@@ -170,9 +170,34 @@ func TestAnyIsSymbol(t *testing.T) {
 	for y, expected := range cases {
 		t.Run(sourceStrings[y], func(t *testing.T) {
 			coords := numberCells(matrix.Cells[y]).coords() // cheating, borrowing method off numberCells
-			actual, err := anyIsSymbol(matrix, coords)
-			assert.Nil(t, err)
-			assert.Equal(t, expected, actual)
+			assert.Equal(t, expected, anyIsSymbol(matrix, coords))
+		})
+	}
+}
+
+func TestGetPossibleGearCells(t *testing.T) {
+	sourceStrings := []string{
+		"467..114..",
+		"...*......",
+		"..35..633.",
+		"......#...",
+		"617*..*...",
+	}
+	matrix := utils.MustMatrix(sourceStrings)
+
+	// key is y index of row
+	cases := map[int][]utils.Cell{ // map input to expected output
+		0: nil,
+		1: {{3, 1, "*"}},
+		2: nil,
+		3: nil,
+		4: {{3, 4, "*"}, {6, 4, "*"}},
+	}
+
+	for y, expected := range cases {
+		t.Run(sourceStrings[y], func(t *testing.T) {
+			coords := numberCells(matrix.Cells[y]).coords() // cheating, borrowing method off numberCells
+			assert.Equal(t, expected, getPossibleGearCells(matrix, coords))
 		})
 	}
 }

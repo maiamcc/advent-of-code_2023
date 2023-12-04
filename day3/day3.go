@@ -18,11 +18,7 @@ func partOne(inputLines []string) int {
 	matrix := utils.MustMatrix(inputLines)
 	numCells := numbersForRow(matrix.Flatten()) // we can actually analyze the whole matrix at once, neat!
 	for _, num := range numCells {
-		isPartNum, err := isPartNumber(matrix, num)
-		if err != nil {
-			utils.LogfErrorAndExit(err, "checking for part num")
-		}
-		if isPartNum {
+		if isPartNumber(matrix, num) {
 			i, err := num.asInt()
 			if err != nil {
 				utils.LogfErrorAndExit(err, "this should be a valid int")
@@ -30,6 +26,37 @@ func partOne(inputLines []string) int {
 			total += i
 		}
 	}
+	return total
+}
+
+func partTwo(inputLines []string) int {
+	total := 0
+	matrix := utils.MustMatrix(inputLines)
+	numCells := numbersForRow(matrix.Flatten()) // we can actually analyze the whole matrix at once, neat!
+	numsByGear := make(map[utils.Coord][]int)   // map the coord of a gear to the number(s) adjacent to it
+	for _, num := range numCells {
+		gear, ok := adjacentGearForNum(matrix, num)
+		if !ok {
+			continue
+		}
+		gearCoord := gear.Coordinates()
+		if _, ok := numsByGear[gearCoord]; ok {
+			numsByGear[gearCoord] = append(numsByGear[gearCoord], num.mustInt())
+		} else {
+			numsByGear[gearCoord] = []int{num.mustInt()}
+		}
+	}
+
+	for gearCoord, nums := range numsByGear { // eeeh i'm conflating what gets called a num or not, whateverrrr
+		// we only care about this gear if it has two adjacent numbers.
+		if len(nums) == 2 {
+			total += nums[0] * nums[1]
+		} else if len(nums) > 2 {
+			// do we care if it has MORE than two? Great question.
+			panic(fmt.Sprintf("Gear at %+v has %d adjacent numbers??", gearCoord, len(nums)))
+		}
+	}
+
 	return total
 }
 
@@ -91,6 +118,14 @@ func (num numberCells) asInt() (int, error) {
 	return strconv.Atoi(s)
 }
 
+func (num numberCells) mustInt() int {
+	i, err := num.asInt()
+	if err != nil {
+		utils.LogfErrorAndExit(err, "converting num to int. Cells:\n\t%v+", num)
+	}
+	return i
+}
+
 // numbersForRow returns an array of Cell arrays (each of the latter
 // representing a series of horizontally adjacent cells containing digits,
 // which together can be taken to represent a number)
@@ -125,33 +160,67 @@ func numbersForRow(row []utils.Cell) []numberCells {
 	return numbers
 }
 
-func isSymbol(matrix utils.Matrix, coord utils.Coord) bool {
-	cell, err := matrix.Get(coord.X, coord.Y)
+func hasValue(matrix utils.Matrix, coord utils.Coord, checker func(val string) bool) bool {
+	cell, err := matrix.GetByCoord(coord)
 	if err != nil {
 		// ehh, implementation is such that we might get passed bunk coordinates from our
 		// overeager adjacent coordinate finding. If it's not valid, just return false
 		// instead of erroring out.
 		return false
 	}
-	// Just checking if it's a digit or a period. If letters are possible in the grid,
-	// will have to change this.
-	return !unicode.IsNumber(utils.MustRune(cell.Val)) && cell.Val != "."
+	return checker(cell.Val)
+}
+func isSymbol(matrix utils.Matrix, coord utils.Coord) bool {
+	return hasValue(matrix, coord, func(val string) bool {
+		return !unicode.IsNumber(utils.MustRune(val)) && val != "."
+	})
 }
 
-func anyIsSymbol(matrix utils.Matrix, coords []utils.Coord) (bool, error) {
+func anyIsSymbol(matrix utils.Matrix, coords []utils.Coord) bool {
 	for _, coord := range coords {
 		if isSymbol(matrix, coord) {
-			return true, nil
+			return true
 		}
 	}
-	return false, nil
+	return false
 }
 
-func isPartNumber(matrix utils.Matrix, numCells numberCells) (bool, error) {
+// filterCellsWithValue returns the cells at the given coordinates IF the cell
+// contains a value as determined by the checker func.
+func filterCellsWithValue(matrix utils.Matrix, coords []utils.Coord, checker func(val string) bool) []utils.Cell {
+	var filtered []utils.Cell
+	for _, coord := range coords {
+		if hasValue(matrix, coord, checker) {
+			cell, _ := matrix.GetByCoord(coord) // we just got this coord, we know it's kosher, urk
+			filtered = append(filtered, cell)
+		}
+	}
+	return filtered
+}
+
+func getPossibleGearCells(matrix utils.Matrix, coords []utils.Coord) []utils.Cell {
+	return filterCellsWithValue(matrix, coords, func(val string) bool {
+		return val == "*"
+	})
+}
+
+func isPartNumber(matrix utils.Matrix, numCells numberCells) bool {
 	adjacentCoords := getAllAdjacentCoords(numCells.coords())
 	return anyIsSymbol(matrix, adjacentCoords)
 }
 
-func partTwo(inputLines []string) int {
-	return len(inputLines)
+func adjacentGearForNum(matrix utils.Matrix, numCells numberCells) (result utils.Cell, ok bool) {
+	adjacentCoords := getAllAdjacentCoords(numCells.coords())
+	possibleGears := getPossibleGearCells(matrix, adjacentCoords)
+	if len(possibleGears) > 1 {
+		// is it possible that we'd have multiple "*" cells abutting a single number?
+		// Let's assume not, and complain loudly if we find any.
+		panic(fmt.Sprintf("found multiple gears adjacent to a number, I didn't know that was possible!"+
+			"\n\tCells of this number: %+v", numCells))
+	}
+	if len(possibleGears) == 1 {
+		return possibleGears[0], true
+	}
+	return utils.Cell{}, false
+
 }
