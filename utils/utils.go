@@ -65,7 +65,7 @@ func NumResultFromRe(s string, re *regexp.Regexp) int {
 	return MustAtoI(res[1])
 }
 
-func MustStringsToInts(s []string) []int {
+func StringsToInts(s []string) ([]int, error) {
 	var res []int
 	for _, num := range s {
 		// account for wonky spaces / empty
@@ -73,7 +73,19 @@ func MustStringsToInts(s []string) []int {
 		if num == "" {
 			continue
 		}
-		res = append(res, MustAtoI(num))
+		i, err := strconv.Atoi(num)
+		if err != nil {
+			return nil, err
+		}
+		res = append(res, i)
 	}
-	return res
+	return res, nil
+}
+
+func MustStringsToInts(s []string) []int {
+	ints, err := StringsToInts(s)
+	if err != nil {
+		LogfErrorAndExit(err, "converting []string to []int")
+	}
+	return ints
 }
