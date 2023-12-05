@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var gameIdRe = regexp.MustCompile("Card +(\\d+)")
+var cardIdRe = regexp.MustCompile("Card +(\\d+)")
 
 func main() {
 	inputLines := utils.MustReadFileAsLines("day4/input.txt")
@@ -19,24 +19,28 @@ func main() {
 func partOne(inputLines []string) int {
 	total := 0
 	for _, ln := range inputLines {
-		g := parseGame(ln)
+		g := parseCard(ln)
 		total += g.score()
 	}
 	return total
 }
 
 func partTwo(inputLines []string) int {
-	return len(inputLines)
+	cards := cardStackFromLines(inputLines)
+	for i, _ := range cards {
+		cards.scoreCardWithId(i + 1)
+	}
+	return cards.totalCards()
 }
 
-type game struct {
+type card struct {
 	id          int // this is now denormalized data but whatever we'll just leave it
 	count       int // number of occurences of this card (incl. original and any copies) in the stack
 	winningNums utils.IntSet
 	numsOnCard  []int
 }
 
-func (g game) countWinners() int {
+func (g card) countWinners() int {
 	count := 0
 	for _, num := range g.numsOnCard {
 		if g.winningNums.Contains(num) {
@@ -46,60 +50,60 @@ func (g game) countWinners() int {
 	return count
 }
 
-func (g game) score() int {
+func (g card) score() int {
 	return int(math.Pow(2, float64(g.countWinners()-1)))
 }
 
-func parseGame(input string) game {
-	gameIdAndNums, err := utils.SplitIntoExpectedParts(input, ":", 2)
+func parseCard(input string) card {
+	cardIdAndNums, err := utils.SplitIntoExpectedParts(input, ":", 2)
 	if err != nil {
-		utils.LogfErrorAndExit(err, "splitting input (into game id and rest)")
+		utils.LogfErrorAndExit(err, "splitting input (into card id and rest)")
 	}
 
-	gameId := utils.NumResultFromRe(gameIdAndNums[0], gameIdRe)
-	if gameId == 0 {
-		utils.LogfErrorAndExit(nil, "couldn't parse game id from input string '%s", input)
+	cardId := utils.NumResultFromRe(cardIdAndNums[0], cardIdRe)
+	if cardId == 0 {
+		utils.LogfErrorAndExit(nil, "couldn't parse card id from input string '%s", input)
 	}
 
-	parts, err := utils.SplitIntoExpectedParts(strings.TrimSpace(gameIdAndNums[1]), " | ", 2)
+	parts, err := utils.SplitIntoExpectedParts(strings.TrimSpace(cardIdAndNums[1]), " | ", 2)
 	if err != nil {
 		utils.LogfErrorAndExit(err, "splitting input (into winning numbers / numbers on card)")
 	}
 
-	return game{
-		id:          gameId,
+	return card{
+		id:          cardId,
+		count:       1, // initally, there's one of each card
 		winningNums: utils.NewIntSet(utils.MustStringsToInts(strings.Split(parts[0], " "))),
 		numsOnCard:  utils.MustStringsToInts(strings.Split(parts[1], " ")),
 	}
 }
 
-type cardStack []game // index games by id (leave a dummy game at cardStack[0] so it's one-indexed
+// assume cards are in order and there are no gaps; thus, card 1 is the first
+// elem (index 0), card 20 is the 20th element (index 19), etc.
+type cardStack []card
 
-func newCardStack(games []game) cardStack {
-	// assume that we don't have holes in our list of games: that a list of 5 games
-	// implies that we have games with ids 1 --> 5 (and need a list of len 6 to hold
-	// them, b/c we're 1-indexed
-	cs := make(cardStack, len(games)+1)
-	for _, g := range games {
-		cs[g.id] = g
+func cardStackFromLines(lns []string) cardStack {
+	cs := make(cardStack, len(lns))
+	for i, ln := range lns {
+		cs[i] = parseCard(ln)
 	}
 	return cs
 }
 
-func (cs cardStack) scoreGameWithId(id int) {
-	if id >= len(cs) {
-		// nonexistent game id, idk if this might happen when scoring the very last game?
+func (cs cardStack) scoreCardWithId(id int) {
+	if id > len(cs) {
+		// nonexistent card id, idk if this might happen when scoring the very last card?
 		// just treat it as a no-op.
 		return
 	}
-	curGame := cs[id]
-	winCount := curGame.countWinners()
+	curCard := cs[id-1]
+	winCount := curCard.countWinners()
 	for i := id + 1; i < id+winCount+1; i++ {
-		if i >= len(cs) {
-			// can't get extra copies of a game you don't have I guess
+		if i > len(cs) {
+			// can't get extra copies of a card you don't have I guess
 			break
 		}
-		cs[i].count += curGame.count
+		cs[i-1].count += curCard.count
 	}
 }
 
