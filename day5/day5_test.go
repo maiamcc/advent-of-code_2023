@@ -13,15 +13,14 @@ func TestPartOne(t *testing.T) {
 	assert.Equal(t, 35, actual)
 }
 
-//func TestPartTwo(t *testing.T) {
-//	inputStr := "input\ngoes\nhere"
-//	inputLns := strings.Split(inputStr, "\n")
-//
-//	actual := partTwo(inputLns)
-//	assert.Equal(t, 123, actual)
-//}
+func TestPartTwo(t *testing.T) {
+	inputStr := "seeds: 79 14 55 13\n\nseed-to-soil map:\n50 98 2\n52 50 48\n\nsoil-to-fertilizer map:\n0 15 37\n37 52 2\n39 0 15\n\nfertilizer-to-water map:\n49 53 8\n0 11 42\n42 0 7\n57 7 4\n\nwater-to-light map:\n88 18 7\n18 25 70\n\nlight-to-temperature map:\n45 77 23\n81 45 19\n68 64 13\n\ntemperature-to-humidity map:\n0 69 1\n1 0 69\n\nhumidity-to-location map:\n60 56 37\n56 93 4"
 
-func TestParseSeeds(t *testing.T) {
+	actual := partTwo(inputStr)
+	assert.Equal(t, 46, actual)
+}
+
+func TestParseSeedsPartOne(t *testing.T) {
 	cases := map[string][]int{ // map input to expected output
 		"seeds: 79 14 55 13":     {79, 14, 55, 13},
 		"seeds: 79":              {79},
@@ -32,7 +31,28 @@ func TestParseSeeds(t *testing.T) {
 
 	for input, expected := range cases {
 		t.Run(input, func(t *testing.T) {
-			seeds, err := parseSeeds(input)
+			seeds, err := parseSeedsPartOne(input)
+			assert.Equal(t, expected, seeds)
+			if len(expected) == 0 {
+				assert.Error(t, err)
+			} else {
+				assert.Nil(t, err)
+			}
+		})
+	}
+}
+
+func TestParseSeedsPartTwo(t *testing.T) {
+	cases := map[string][]int{ // map input to expected output
+		"seeds: 79 1 55 2":     {79, 55, 56},
+		"seeds: 79 1":          {79},
+		"seeds: 79 14 : 55 13": nil, // expect error
+		"seeds: 71 a 14":       nil, // expect error
+	}
+
+	for input, expected := range cases {
+		t.Run(input, func(t *testing.T) {
+			seeds, err := parseSeedsPartTwo(input)
 			assert.Equal(t, expected, seeds)
 			if len(expected) == 0 {
 				assert.Error(t, err)

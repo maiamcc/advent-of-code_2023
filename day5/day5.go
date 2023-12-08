@@ -10,17 +10,17 @@ import (
 
 func main() {
 	input := utils.MustReadFileAsString("day5/input.txt")
-	fmt.Println("The answer to Part One is:", partOne(input))
-	//fmt.Println("The answer to Part Two is:", partTwo(inputLines))
+	//fmt.Println("The answer to Part One is:", partOne(input))
+	fmt.Println("The answer to Part Two is:", partTwo(input))
 }
 
 func partOne(fullInput string) int {
 	seedsAndRest := strings.SplitN(fullInput, "\n\n", 2)
 	if len(seedsAndRest) != 2 {
-		fmt.Errorf("unexpected number of parts for input")
+		fmt.Printf("unexpected number of parts for input")
 		os.Exit(1)
 	}
-	seeds, err := parseSeeds(seedsAndRest[0])
+	seeds, err := parseSeedsPartOne(seedsAndRest[0])
 	if err != nil {
 		utils.LogfErrorAndExit(err, "parsing seeds")
 	}
@@ -47,16 +47,78 @@ func partOne(fullInput string) int {
 	return minLocation
 }
 
-//	func partTwo(inputLines []string) int {
-//		return len(inputLines)
-//	}
-func parseSeeds(s string) ([]int, error) {
+func partTwo(fullInput string) int {
+	seedsAndRest := strings.SplitN(fullInput, "\n\n", 2)
+	if len(seedsAndRest) != 2 {
+		fmt.Printf("unexpected number of parts for input")
+		os.Exit(1)
+	}
+	seeds, err := parseSeedsPartTwo(seedsAndRest[0])
+	if err != nil {
+		utils.LogfErrorAndExit(err, "parsing seeds")
+	}
+	allMaps, err := parseMapChain(seedsAndRest[1])
+	if err != nil {
+		utils.LogfErrorAndExit(err, "parsing input")
+	}
+
+	seedsToLocation := make(map[int]int)
+	for _, seed := range seeds {
+		seedsToLocation[seed] = allMaps.mapVal(seed)
+	}
+	minLocation := -1
+	for _, location := range seedsToLocation {
+		if minLocation == -1 {
+			minLocation = location // set initial value
+			continue
+		}
+
+		if location < minLocation {
+			minLocation = location
+		}
+	}
+	return minLocation
+}
+
+// parseSeedsPartOne parses a "seeds: a b c d" line as a list of ints
+func parseSeedsPartOne(s string) ([]int, error) {
 	parts, err := utils.SplitIntoExpectedParts(s, ": ", 2)
 	if err != nil {
 		return nil, err
 	}
 	seedVals := strings.Split(parts[1], " ")
 	return utils.StringsToInts(seedVals)
+}
+
+// parseSeedsPartTwo parses a "seeds: a b c d" line as a series of int ranges and returns a list of all ints contained therein
+func parseSeedsPartTwo(s string) ([]int, error) {
+	parts, err := utils.SplitIntoExpectedParts(s, ": ", 2)
+	if err != nil {
+		return nil, err
+	}
+	nums, err := utils.StringsToInts(strings.Split(parts[1], " "))
+	if err != nil {
+		return nil, err
+	}
+
+	var res []int
+	rangeStart := -1
+	for _, n := range nums {
+		if rangeStart == -1 {
+			// beginning of a range
+			rangeStart = n
+		} else {
+			// n represents the range length
+			res = append(res, utils.Rng(rangeStart, rangeStart+n)...)
+			rangeStart = -1
+		}
+	}
+	return res, nil
+}
+
+type seedRange struct {
+	startVal  int
+	rangeSize int
 }
 
 func parseMapping(s string) (mapping, error) {

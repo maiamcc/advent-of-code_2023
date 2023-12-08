@@ -89,3 +89,16 @@ func MustStringsToInts(s []string) []int {
 	}
 	return ints
 }
+
+func Rng(start int, end int) []int {
+	if end < start {
+		fmt.Printf("the range function doesn't work like that")
+		os.Exit(1)
+	}
+	// behaves like the python range function: inclusive of `start`, exclusive of `end`
+	a := make([]int, end-start)
+	for i := range a {
+		a[i] = start + i
+	}
+	return a
+}
