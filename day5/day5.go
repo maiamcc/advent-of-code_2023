@@ -57,17 +57,18 @@ func partTwo(fullInput string) int {
 	if err != nil {
 		utils.LogfErrorAndExit(err, "parsing seeds")
 	}
+
+	fmt.Printf("=Parsed %d seeds\n\n", len(seeds))
+
 	allMaps, err := parseMapChain(seedsAndRest[1])
 	if err != nil {
 		utils.LogfErrorAndExit(err, "parsing input")
 	}
 
-	seedsToLocation := make(map[int]int)
-	for _, seed := range seeds {
-		seedsToLocation[seed] = allMaps.mapVal(seed)
-	}
 	minLocation := -1
-	for _, location := range seedsToLocation {
+	for _, seed := range seeds {
+		location := allMaps.mapVal(seed)
+		fmt.Printf("=Seed %d --> location %d\n", seed, location)
 		if minLocation == -1 {
 			minLocation = location // set initial value
 			continue
