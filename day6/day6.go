@@ -20,7 +20,6 @@ func partOne(fullInput string) int {
 	}
 	total := 1
 	for _, r := range races {
-		fmt.Printf("== ANALYZING RACE: dur. %d ms, record %d mm ==\n", r.dur, r.record)
 		total *= r.numWinningOptionsV2()
 	}
 	return total
@@ -41,13 +40,10 @@ type race struct {
 
 func (r race) numWinningOptions() int {
 	count := 0
-	fmt.Printf("== ANALYZING RACE: dur. %d ms, record %d mm ==\n", r.dur, r.record)
 	for i := 0; i <= r.dur; i++ {
 		// i ms holding button, dur - i ms traveling at a speed of i mm/ms
 		actualDist := (r.dur - i) * i
-		fmt.Printf("%d ms holding button --> %d ms of travel at %d mm/ms --> dist of %d\n", i, r.dur-i, i, actualDist)
 		if actualDist > r.record {
-			fmt.Println("-- incrementing win count")
 			count += 1
 		} else {
 			if count > 0 {
@@ -57,7 +53,6 @@ func (r race) numWinningOptions() int {
 			}
 		}
 	}
-	fmt.Printf("--> %d winning options\n\n", count)
 	return count
 }
 
@@ -66,8 +61,7 @@ func (r race) distForMsButtonPress(ms int) int {
 }
 
 func (r race) numWinningOptionsV2() int {
-	fmt.Println("Searching for first winning button")
-	median := r.dur / 2 // uhh will the middle number always be a winner? i hope so!
+	median := r.dur / 2 // uhh will the middle number always be a winner? Instincts say yes!
 	firstWinningButtonMs := binSearchInflection(0, median, func(i int) bool {
 		return r.distForMsButtonPress(i) > r.record
 	})
@@ -149,12 +143,9 @@ func binSearchInflection(start int, end int, checker func(i int) bool) int {
 	}
 
 	median := start + (end-start)/2 // b/c of int implementation, this rounds down
-	fmt.Printf("= bin search %d -> %d (median: %d)\n", start, end, median)
 	if !checker(median) {
-		fmt.Printf("== recursing on %d -> %d\n", median, end)
 		return binSearchInflection(median, end, checker)
 	} else {
-		fmt.Printf("== recursing on %d -> %d\n", start, median)
 		return binSearchInflection(start, median, checker)
 	}
 }
