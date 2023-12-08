@@ -3,22 +3,61 @@ package main
 import (
 	"fmt"
 	"github.com/maiamcc/advent-of-code_2023/utils"
+	"os"
+	"strings"
 	"unicode"
 )
 
 func main() {
-	inputLines := utils.MustReadFileAsString("day5/input.txt")
-	fmt.Println("The answer to Part One is:", partOne(inputLines))
+	input := utils.MustReadFileAsString("day5/input.txt")
+	fmt.Println("The answer to Part One is:", partOne(input))
 	//fmt.Println("The answer to Part Two is:", partTwo(inputLines))
 }
 
 func partOne(fullInput string) int {
-	return len(fullInput)
+	seedsAndRest := strings.SplitN(fullInput, "\n\n", 2)
+	if len(seedsAndRest) != 2 {
+		fmt.Errorf("unexpected number of parts for input")
+		os.Exit(1)
+	}
+	seeds, err := parseSeeds(seedsAndRest[0])
+	if err != nil {
+		utils.LogfErrorAndExit(err, "parsing seeds")
+	}
+	allMaps, err := parseMapChain(seedsAndRest[1])
+	if err != nil {
+		utils.LogfErrorAndExit(err, "parsing input")
+	}
+
+	seedsToLocation := make(map[int]int)
+	for _, seed := range seeds {
+		seedsToLocation[seed] = allMaps.mapVal(seed)
+	}
+	minLocation := -1
+	for _, location := range seedsToLocation {
+		if minLocation == -1 {
+			minLocation = location // set initial value
+			continue
+		}
+
+		if location < minLocation {
+			minLocation = location
+		}
+	}
+	return minLocation
 }
 
-//func partTwo(inputLines []string) int {
-//	return len(inputLines)
-//}
+//	func partTwo(inputLines []string) int {
+//		return len(inputLines)
+//	}
+func parseSeeds(s string) ([]int, error) {
+	parts, err := utils.SplitIntoExpectedParts(s, ": ", 2)
+	if err != nil {
+		return nil, err
+	}
+	seedVals := strings.Split(parts[1], " ")
+	return utils.StringsToInts(seedVals)
+}
 
 func parseMapping(s string) (mapping, error) {
 	parts, err := utils.SplitIntoExpectedParts(s, " ", 3)
@@ -39,13 +78,21 @@ func parseMapping(s string) (mapping, error) {
 
 // parseMappingSet takes a block beginning with a header (e.g. "seed-to-soil mapping:") and
 // some number of lines, each representing a mapping, and parses it into a mappingSet
-func parseMappingSet(lns []string) (mappingSet, error) {
+func parseMappingSet(input string) (mappingSet, error) {
+	return parseMappingSetHelper(strings.Split(input, "\n"))
+}
+
+func parseMappingSetHelper(lns []string) (mappingSet, error) {
 	if len(lns) < 1 {
 		return mappingSet{}, fmt.Errorf("no lines to parse")
 	}
 	if !(unicode.IsNumber(utils.MustRune(lns[0][0:1]))) {
 		// First line is the block header, chop it off and parse the remaining
-		return parseMappingSet(lns[1:])
+		if len(lns) == 1 {
+			// wait what, there are no actual mapping lines to parse, this line is the only one!
+			return mappingSet{}, fmt.Errorf("no lines to parse")
+		}
+		return parseMappingSetHelper(lns[1:])
 	}
 	result := make(mappingSet, len(lns))
 	for i, ln := range lns {
@@ -54,6 +101,23 @@ func parseMappingSet(lns []string) (mappingSet, error) {
 			return mappingSet{}, err
 		}
 		result[i] = m
+	}
+	return result, nil
+}
+
+func parseMapChain(input string) (mapChain, error) {
+	blocks := strings.Split(input, "\n\n")
+	var result mapChain
+	for _, block := range blocks {
+		block = strings.TrimSpace(block)
+		if block == "" { // in case of imprecise splitting
+			continue
+		}
+		ms, err := parseMappingSet(block)
+		if err != nil {
+			return mapChain{}, err
+		}
+		result = append(result, ms)
 	}
 	return result, nil
 }
