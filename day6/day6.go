@@ -20,7 +20,8 @@ func partOne(fullInput string) int {
 	}
 	total := 1
 	for _, r := range races {
-		total *= r.numWinningOptions()
+		fmt.Printf("== ANALYZING RACE: dur. %d ms, record %d mm ==\n", r.dur, r.record)
+		total *= r.numWinningOptionsV2()
 	}
 	return total
 }
@@ -30,7 +31,7 @@ func partTwo(fullInput string) int {
 	if err != nil {
 		utils.LogfErrorAndExit(err, "parsing the one big race")
 	}
-	return r.numWinningOptions()
+	return r.numWinningOptionsV2()
 }
 
 type race struct {
@@ -58,6 +59,22 @@ func (r race) numWinningOptions() int {
 	}
 	fmt.Printf("--> %d winning options\n\n", count)
 	return count
+}
+
+func (r race) distForMsButtonPress(ms int) int {
+	return (r.dur - ms) * ms
+}
+
+func (r race) numWinningOptionsV2() int {
+	fmt.Println("Searching for first winning button")
+	median := r.dur / 2 // uhh will the middle number always be a winner? i hope so!
+	firstWinningButtonMs := binSearchInflection(0, median, func(i int) bool {
+		return r.distForMsButtonPress(i) > r.record
+	})
+	firstLosingButtonMs := binSearchInflection(median, r.dur, func(i int) bool {
+		return r.distForMsButtonPress(i) <= r.record
+	})
+	return firstLosingButtonMs - firstWinningButtonMs
 }
 
 func parseRaces(input string) ([]race, error) {
@@ -115,4 +132,29 @@ func parseMegaString(s string) (int, error) {
 	}
 	s = strings.Replace(pts[1], " ", "", -1)
 	return strconv.Atoi(s)
+}
+
+// binSearchInflection finds the inflection point — the first value where checker(i)
+// returns true having previously returned false
+func binSearchInflection(start int, end int, checker func(i int) bool) int {
+	if checker(start) {
+		panic("expected input where left side returned false")
+	} else if !checker(end) {
+		panic("expected input where right side returned true")
+	}
+
+	if end-start == 1 {
+		// they're one apart, we've found the inflection!
+		return end
+	}
+
+	median := start + (end-start)/2 // b/c of int implementation, this rounds down
+	fmt.Printf("= bin search %d -> %d (median: %d)\n", start, end, median)
+	if !checker(median) {
+		fmt.Printf("== recursing on %d -> %d\n", median, end)
+		return binSearchInflection(median, end, checker)
+	} else {
+		fmt.Printf("== recursing on %d -> %d\n", start, median)
+		return binSearchInflection(start, median, checker)
+	}
 }
