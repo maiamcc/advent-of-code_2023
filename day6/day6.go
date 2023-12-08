@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/maiamcc/advent-of-code_2023/utils"
+	"strconv"
 	"strings"
 )
 
 func main() {
 	fullInput := utils.MustReadFileAsString("day6/input.txt")
 	fmt.Println("The answer to Part One is:", partOne(fullInput))
-	//fmt.Println("The answer to Part Two is:", partTwo(fullInput))
+	fmt.Println("The answer to Part Two is:", partTwo(fullInput))
 }
 
 func partOne(fullInput string) int {
@@ -25,7 +26,11 @@ func partOne(fullInput string) int {
 }
 
 func partTwo(fullInput string) int {
-	return len(fullInput)
+	r, err := parseRacePartTwo(fullInput)
+	if err != nil {
+		utils.LogfErrorAndExit(err, "parsing the one big race")
+	}
+	return r.numWinningOptions()
 }
 
 type race struct {
@@ -43,6 +48,12 @@ func (r race) numWinningOptions() int {
 		if actualDist > r.record {
 			fmt.Println("-- incrementing win count")
 			count += 1
+		} else {
+			if count > 0 {
+				// we've found a loser after finding at least one winner;
+				//everything from here will be a loser and we can just bail
+				break
+			}
 		}
 	}
 	fmt.Printf("--> %d winning options\n\n", count)
@@ -75,4 +86,33 @@ func parseRaces(input string) ([]race, error) {
 		races[i] = race{dur: durVals[i], record: distVals[i]}
 	}
 	return races, nil
+}
+
+func parseRacePartTwo(input string) (race, error) {
+	lns, err := utils.SplitIntoExpectedParts(input, "\n", 2)
+	if err != nil {
+		return race{}, err
+	}
+
+	dur, err := parseMegaString(lns[0])
+	if err != nil {
+		return race{}, err
+	}
+
+	dist, err := parseMegaString(lns[1])
+	if err != nil {
+		return race{}, err
+	}
+
+	return race{dur, dist}, nil
+}
+
+// look idk how naming works. Take input `foobar:  1    3    5   7` --> int 1357
+func parseMegaString(s string) (int, error) {
+	pts, err := utils.SplitIntoExpectedParts(s, ":", 2)
+	if err != nil {
+		return 0, err
+	}
+	s = strings.Replace(pts[1], " ", "", -1)
+	return strconv.Atoi(s)
 }
