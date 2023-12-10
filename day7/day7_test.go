@@ -29,6 +29,9 @@ func TestHand_TypeRank(t *testing.T) {
 		"22333": FULL_HOUSE,
 		"AA8AA": FOUR_OF_A_KIND,
 		"AAAAA": FIVE_OF_A_KIND,
+		"7A7A7": FULL_HOUSE,
+		"83333": FOUR_OF_A_KIND,
+		"87778": FULL_HOUSE,
 	}
 
 	for input, expected := range cases {
@@ -49,9 +52,11 @@ func TestHand_Cmp(t *testing.T) {
 		{"86524", "AAAAA", -1},
 		{"77QQ8", "AA452", 1},
 		{"444JK", "555JK", -1},
+		{"444JK", "23555", 1},
 		{"AA8AA", "AA7AA", 1},
 		{"34567", "35467", -1},
 		{"JJJJJ", "JJJJJ", 0},
+		{"83333", "87778", 1},
 	}
 
 	for i, c := range cases {

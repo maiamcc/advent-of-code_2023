@@ -70,6 +70,7 @@ func partOne(fullInput string) int {
 	for i, h := range hands {
 		rank := i + 1 // 1-index us
 		total += rank * h.bid
+		//fmt.Printf("%d: %v\t[%s]\t(bid: %d)\n", rank, h.cards, h.typeRank().toString(), h.bid)
 	}
 	return total
 }
@@ -175,15 +176,6 @@ func parseHandsWithBids(s string) []hand {
 	return hands
 }
 
-//func parseHands(s string) []hand {
-//	lns := strings.Split(s, "\n")
-//	var hands []hand
-//	for _, ln := range lns {
-//		hands = append(hands, parseCards(ln))
-//	}
-//	return hands
-//}
-
 func (h hand) typeRank() typeRank {
 	cardFreqs := make(map[card]int)
 	for _, c := range h.cards {
@@ -205,8 +197,8 @@ func (h hand) typeRank() typeRank {
 			if count == 4 {
 				return FOUR_OF_A_KIND
 			}
-			return FULL_HOUSE
 		}
+		return FULL_HOUSE
 	}
 	return FIVE_OF_A_KIND
 }
