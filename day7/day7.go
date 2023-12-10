@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var cardValues = map[string]int{
+var cardValuesPartOne = map[string]int{
 	"2": 2,
 	"3": 3,
 	"4": 4,
@@ -19,6 +19,23 @@ var cardValues = map[string]int{
 	"9": 9,
 	"T": 10,
 	"J": 11,
+	"Q": 12,
+	"K": 13,
+	"A": 14,
+}
+
+var cardValuesPartTwo = map[string]int{
+	"J": 1, // joker now the weakest card, make it worth the least
+	"2": 2,
+	"3": 3,
+	"4": 4,
+	"5": 5,
+	"6": 6,
+	"7": 7,
+	"8": 8,
+	"9": 9,
+	"T": 10,
+	// "J": 11,
 	"Q": 12,
 	"K": 13,
 	"A": 14,
@@ -60,7 +77,7 @@ func (tr typeRank) toString() string {
 func main() {
 	fullInput := utils.MustReadFileAsString("day7/input.txt")
 	fmt.Println("The answer to Part One is:", partOne(fullInput))
-	//fmt.Println("The answer to Part Two is:", partTwo(fullInput))
+	fmt.Println("The answer to Part Two is:", partTwo(fullInput))
 }
 
 func partOne(fullInput string) int {
@@ -70,17 +87,25 @@ func partOne(fullInput string) int {
 	for i, h := range hands {
 		rank := i + 1 // 1-index us
 		total += rank * h.bid
-		//fmt.Printf("%d: %v\t[%s]\t(bid: %d)\n", rank, h.cards, h.typeRank().toString(), h.bid)
+		//fmt.Printf("%d: %v\t[%s]\t(bid: %d)\n", rank, h.cards, h.typeRank(false).toString(), h.bid)
 	}
 	return total
 }
 
 func partTwo(fullInput string) int {
-	return len(fullInput)
+	total := 0
+	hands := parseHandsWithBids(fullInput)
+	sort.Sort(sortableWithJokers(hands))
+	for i, h := range hands {
+		rank := i + 1 // 1-index us
+		total += rank * h.bid
+		//fmt.Printf("%d: %v\t[%s]\t(bid: %d)\n", rank, h.cards, h.typeRank().toString(), h.bid)
+	}
+	return total
 }
 
 func newCard(s string) card {
-	_, ok := cardValues[s]
+	_, ok := cardValuesPartOne[s] // eh this should be paramaterized but it's just validation
 	if !ok {
 		fmt.Printf("invalid label '%s', will not create card\n", s)
 		os.Exit(1)
@@ -90,8 +115,8 @@ func newCard(s string) card {
 
 type card string
 
-func (c card) val() int {
-	v, ok := cardValues[string(c)]
+func (c card) val(cardVals map[string]int) int {
+	v, ok := cardVals[string(c)]
 	if !ok {
 		// this is probs unnecessary now that we have validation on card creation but whatevs
 		fmt.Printf("couldn't find numeric value for label '%s'\n", c)
@@ -100,22 +125,22 @@ func (c card) val() int {
 	return v
 }
 
-func (c card) _cmp(c2 card) int {
-	if c.val() < c2.val() {
+func (c card) _cmp(c2 card, cardVals map[string]int) int {
+	if c.val(cardVals) < c2.val(cardVals) {
 		return -1
 	}
-	if c.val() > c2.val() {
+	if c.val(cardVals) > c2.val(cardVals) {
 		return 1
 	}
 	return 0
 }
 
-func (c card) lessThan(c2 card) bool {
-	return c._cmp(c2) == -1
+func (c card) lessThan(c2 card, cardVals map[string]int) bool {
+	return c._cmp(c2, cardVals) == -1
 }
 
-func (c card) greaterThan(c2 card) bool {
-	return c._cmp(c2) == 1
+func (c card) greaterThan(c2 card, cardVals map[string]int) bool {
+	return c._cmp(c2, cardVals) == 1
 }
 
 type hand struct {
@@ -123,9 +148,17 @@ type hand struct {
 	bid   int
 }
 
-func (h hand) _cmp(h2 hand) int {
-	tr1 := h.typeRank()
-	tr2 := h2.typeRank()
+func (h hand) _cmpPartOne(h2 hand) int {
+	return h._cmp(h2, cardValuesPartOne, false)
+}
+
+func (h hand) _cmpPartTwo(h2 hand) int {
+	return h._cmp(h2, cardValuesPartTwo, true)
+}
+
+func (h hand) _cmp(h2 hand, cardVals map[string]int, withJokers bool) int {
+	tr1 := h.typeRank(withJokers)
+	tr2 := h2.typeRank(withJokers)
 
 	if tr1 < tr2 {
 		return -1
@@ -138,7 +171,7 @@ func (h hand) _cmp(h2 hand) int {
 		if c == h2.cards[i] {
 			continue
 		}
-		if c.lessThan(h2.cards[i]) {
+		if c.lessThan(h2.cards[i], cardVals) {
 			return -1
 		} else {
 			return 1
@@ -176,11 +209,43 @@ func parseHandsWithBids(s string) []hand {
 	return hands
 }
 
-func (h hand) typeRank() typeRank {
+func (h hand) typeRankPartOne() typeRank {
+	return h.typeRank(false)
+}
+
+func (h hand) typeRankPartTwo() typeRank {
+	return h.typeRank(true)
+}
+
+func (h hand) typeRank(withJokers bool) typeRank {
 	cardFreqs := make(map[card]int)
 	for _, c := range h.cards {
 		cardFreqs[c] += 1
 	}
+	if withJokers {
+		if jCount, ok := cardFreqs["J"]; ok && jCount != 5 {
+			// jokers present, so modify the card count accordingly.
+			// Hunch: the best possible use of a joker in any given situation is to
+			// act as another of the card you already have the most of.
+
+			// NB: this conditional filters out a special case, 5 jokers. If that's the hand,
+			// no need to modify what the jokers stand for, it'll be parsed as 5 of a kind below.
+
+			delete(cardFreqs, "J")   // pop jokers from freq map so they don't get double counted as part of the hand
+			cardWithMost := card("") // find card we already have hte most of
+			for c, count := range cardFreqs {
+				if cardWithMost == "" {
+					cardWithMost = c
+					continue
+				}
+				if count > cardFreqs[cardWithMost] {
+					cardWithMost = c
+				}
+			}
+			cardFreqs[cardWithMost] += jCount // pretend we have count(J) more of that card
+		}
+	}
+
 	if len(cardFreqs) == 5 {
 		return HIGH_CARD
 	} else if len(cardFreqs) == 4 {
@@ -208,4 +273,11 @@ type sortable []hand
 
 func (s sortable) Len() int           { return len(s) }
 func (s sortable) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
-func (s sortable) Less(i, j int) bool { return s[i]._cmp(s[j]) == -1 }
+func (s sortable) Less(i, j int) bool { return s[i]._cmpPartOne(s[j]) == -1 }
+
+// sortable implements sort.Interface for []hand based on the strength of the hands
+type sortableWithJokers []hand
+
+func (sj sortableWithJokers) Len() int           { return len(sj) }
+func (sj sortableWithJokers) Swap(i, j int)      { sj[i], sj[j] = sj[j], sj[i] }
+func (sj sortableWithJokers) Less(i, j int) bool { return sj[i]._cmpPartTwo(sj[j]) == -1 }

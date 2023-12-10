@@ -17,10 +17,10 @@ func TestPartTwo(t *testing.T) {
 	inputStr := "32T3K 765\nT55J5 684\nKK677 28\nKTJJT 220\nQQQJA 483"
 
 	actual := partTwo(inputStr)
-	assert.Equal(t, 123, actual)
+	assert.Equal(t, 5905, actual)
 }
 
-func TestHand_TypeRank(t *testing.T) {
+func TestHand_TypeRankPartOne(t *testing.T) {
 	cases := map[string]typeRank{ // map input to expected output
 		"86524": HIGH_CARD,
 		"AA452": ONE_PAIR,
@@ -37,13 +37,14 @@ func TestHand_TypeRank(t *testing.T) {
 	for input, expected := range cases {
 		t.Run(input, func(t *testing.T) {
 			h := hand{cards: parseCards(input)} // trivial hand without a bid
-			actual := h.typeRank()
-			assert.Equalf(t, expected, actual, "expected %s / got %s", expected.toString())
+			actual := h.typeRankPartOne()
+			assert.Equalf(t, expected, actual, "expected %s / got %s",
+				expected.toString(), actual.toString())
 		})
 	}
 }
 
-func TestHand_Cmp(t *testing.T) {
+func TestHand_CmpPartOne(t *testing.T) {
 	cases := []struct {
 		h1          string
 		h2          string
@@ -63,7 +64,38 @@ func TestHand_Cmp(t *testing.T) {
 		t.Run(fmt.Sprintf("case-%d", i), func(t *testing.T) {
 			hand1 := hand{cards: parseCards(c.h1)} // trivial hand without a bid
 			hand2 := hand{cards: parseCards(c.h2)} // trivial hand without a bid
-			assert.Equal(t, c.expectedCmp, hand1._cmp(hand2))
+			assert.Equal(t, c.expectedCmp, hand1._cmpPartOne(hand2))
+		})
+	}
+}
+
+func TestHand_TypeRankPartTwo(t *testing.T) {
+	cases := map[string]typeRank{ // map input to expected output
+		"86524": HIGH_CARD,
+		"AA452": ONE_PAIR,
+		"77QQ8": TWO_PAIR,
+		"25333": THREE_OF_A_KIND,
+		"22333": FULL_HOUSE,
+		"AA8AA": FOUR_OF_A_KIND,
+		"AAAAA": FIVE_OF_A_KIND,
+		"7A7A7": FULL_HOUSE,
+		"83333": FOUR_OF_A_KIND,
+		"87778": FULL_HOUSE,
+
+		"444JK": FOUR_OF_A_KIND,
+		"865J4": ONE_PAIR,
+		"865JJ": THREE_OF_A_KIND,
+		"Q5QKJ": THREE_OF_A_KIND,
+		"JJJJJ": FIVE_OF_A_KIND,
+		"3J3J3": FIVE_OF_A_KIND,
+	}
+
+	for input, expected := range cases {
+		t.Run(input, func(t *testing.T) {
+			h := hand{cards: parseCards(input)} // trivial hand without a bid
+			actual := h.typeRankPartTwo()
+			assert.Equalf(t, expected, actual, "expected %s / got %s",
+				expected.toString(), actual.toString())
 		})
 	}
 }
