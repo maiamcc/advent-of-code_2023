@@ -18,6 +18,11 @@ func LogfErrorAndExit(err error, msg string, a ...interface{}) {
 	os.Exit(1)
 }
 
+func LogfAndExit(msg string, a ...interface{}) {
+	fmt.Printf(msg, a...)
+	os.Exit(1)
+}
+
 func MustReadFileAsString(name string) string {
 	bytes, err := os.ReadFile(name)
 	if err != nil {
