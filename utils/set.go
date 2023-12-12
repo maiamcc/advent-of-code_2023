@@ -22,3 +22,25 @@ func (is IntSet) Add(i int) {
 func (is IntSet) Rm(i int) {
 	delete(is, i)
 }
+
+type Set[E comparable] map[E]struct{}
+
+func (s Set[E]) Contains(v E) bool {
+	_, ok := s[v]
+	return ok
+}
+func (s Set[E]) Add(v E) {
+	s[v] = struct{}{}
+}
+
+func (s Set[E]) Rm(v E) {
+	delete(s, v)
+}
+
+func NewSet[E comparable](vals ...E) Set[E] {
+	set := Set[E]{}
+	for _, v := range vals {
+		set[v] = struct{}{}
+	}
+	return set
+}
