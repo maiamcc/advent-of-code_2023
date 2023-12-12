@@ -58,7 +58,7 @@ func TestNumberCells_asInt(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			var cells numberCells
 			for _, ch := range strings.Split(input, "") {
-				cells = append(cells, utils.Cell{Val: ch}) // trivial cell with no coords
+				cells = append(cells, utils.SimpleCell{Val: ch}) // trivial cell with no coords
 			}
 
 			i, err := cells.asInt()
@@ -83,8 +83,8 @@ func TestNumbersForRow(t *testing.T) {
 
 	for input, expected := range cases {
 		t.Run(input, func(t *testing.T) {
-			matrix := utils.MustMatrix([]string{input}) // trivial matrix
-			cells := matrix.Cells[0]                    // first row the matrix represents the row we fed in
+			matrix := utils.MustSimpleCellMatrix([]string{input}) // trivial matrix
+			cells := matrix.Cells[0]                              // first row the matrix represents the row we fed in
 			numbers := numbersForRow(cells)
 
 			actual := []int{} // no really, initialize it to empty so it matches the return value
@@ -124,7 +124,7 @@ func TestDedupeCoords(t *testing.T) {
 }
 
 func TestIsSymbol(t *testing.T) {
-	matrix := utils.MustMatrix(
+	matrix := utils.MustSimpleCellMatrix(
 		[]string{
 			"467..114..",
 			"...*......",
@@ -156,7 +156,7 @@ func TestAnyIsSymbol(t *testing.T) {
 		"......#...",
 		"617*..*...",
 	}
-	matrix := utils.MustMatrix(sourceStrings)
+	matrix := utils.MustSimpleCellMatrix(sourceStrings)
 
 	// key is y index of row
 	cases := map[int]bool{ // map input to expected output
@@ -169,7 +169,8 @@ func TestAnyIsSymbol(t *testing.T) {
 
 	for y, expected := range cases {
 		t.Run(sourceStrings[y], func(t *testing.T) {
-			coords := numberCells(matrix.Cells[y]).coords() // cheating, borrowing method off numberCells
+			row := utils.CellsAsSimpleCells(matrix.Cells[y])
+			coords := numberCells(row).coords() // cheating, borrowing method off numberCells
 			assert.Equal(t, expected, anyIsSymbol(matrix, coords))
 		})
 	}
@@ -183,20 +184,21 @@ func TestGetPossibleGearCells(t *testing.T) {
 		"......#...",
 		"617*..*...",
 	}
-	matrix := utils.MustMatrix(sourceStrings)
+	matrix := utils.MustSimpleCellMatrix(sourceStrings)
 
 	// key is y index of row
-	cases := map[int][]utils.Cell{ // map input to expected output
+	cases := map[int][]utils.SimpleCell{ // map input to expected output
 		0: nil,
-		1: {{3, 1, "*"}},
+		1: {utils.SimpleCell{3, 1, "*"}},
 		2: nil,
 		3: nil,
-		4: {{3, 4, "*"}, {6, 4, "*"}},
+		4: {utils.SimpleCell{3, 4, "*"}, utils.SimpleCell{6, 4, "*"}},
 	}
 
 	for y, expected := range cases {
 		t.Run(sourceStrings[y], func(t *testing.T) {
-			coords := numberCells(matrix.Cells[y]).coords() // cheating, borrowing method off numberCells
+			row := utils.CellsAsSimpleCells(matrix.Cells[y])
+			coords := numberCells(row).coords() // cheating, borrowing method off numberCells
 			assert.Equal(t, expected, getPossibleGearCells(matrix, coords))
 		})
 	}

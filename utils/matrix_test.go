@@ -14,16 +14,16 @@ func TestNewMatrix(t *testing.T) {
 		"jkl",
 	}
 	expectedCells := [][]Cell{
-		[]Cell{{0, 0, "a"}, {1, 0, "b"}, {2, 0, "c"}},
-		[]Cell{{0, 1, "d"}, {1, 1, "e"}, {2, 1, "f"}},
-		[]Cell{{0, 2, "g"}, {1, 2, "h"}, {2, 2, "i"}},
-		[]Cell{{0, 3, "j"}, {1, 3, "k"}, {2, 3, "l"}},
+		{SimpleCell{0, 0, "a"}, SimpleCell{1, 0, "b"}, SimpleCell{2, 0, "c"}},
+		{SimpleCell{0, 1, "d"}, SimpleCell{1, 1, "e"}, SimpleCell{2, 1, "f"}},
+		{SimpleCell{0, 2, "g"}, SimpleCell{1, 2, "h"}, SimpleCell{2, 2, "i"}},
+		{SimpleCell{0, 3, "j"}, SimpleCell{1, 3, "k"}, SimpleCell{2, 3, "l"}},
 	}
-	actual, err := NewMatrix(input)
+	actual, err := NewMatrix(input, NewSimpleCell)
 	assert.Nil(t, err)
-	assert.Equal(t, actual.Cells, expectedCells)
-	assert.Equal(t, actual.NumRows, 4)
-	assert.Equal(t, actual.NumCols, 3)
+	assert.Equal(t, expectedCells, actual.Cells)
+	assert.Equal(t, 4, actual.NumRows)
+	assert.Equal(t, 3, actual.NumCols)
 }
 
 func TestNewMatrixUnequalRows(t *testing.T) {
@@ -32,12 +32,12 @@ func TestNewMatrixUnequalRows(t *testing.T) {
 		"def",
 		"ghij",
 	}
-	_, err := NewMatrix(input)
+	_, err := NewMatrix(input, NewSimpleCell)
 	assert.Error(t, err)
 }
 
 func TestMatrix_Get(t *testing.T) {
-	matrix := MustMatrix(
+	matrix := MustSimpleCellMatrix(
 		[]string{
 			"abc",
 			"def",
@@ -62,7 +62,7 @@ func TestMatrix_Get(t *testing.T) {
 			actual, err := matrix.Get(c.x, c.y)
 			if c.expectedVal != "" {
 				assert.Nil(t, err)
-				assert.Equal(t, Cell{c.x, c.y, c.expectedVal}, actual)
+				assert.Equal(t, SimpleCell{c.x, c.y, c.expectedVal}, actual)
 			} else {
 				assert.Error(t, err)
 			}
@@ -71,14 +71,14 @@ func TestMatrix_Get(t *testing.T) {
 }
 
 func TestMatrix_Flatten(t *testing.T) {
-	matrix := MustMatrix(
+	matrix := MustSimpleCellMatrix(
 		[]string{
 			"abc",
 			"def",
 		})
 	expected := []Cell{
-		{0, 0, "a"}, {1, 0, "b"}, {2, 0, "c"},
-		{0, 1, "d"}, {1, 1, "e"}, {2, 1, "f"},
+		SimpleCell{0, 0, "a"}, SimpleCell{1, 0, "b"}, SimpleCell{2, 0, "c"},
+		SimpleCell{0, 1, "d"}, SimpleCell{1, 1, "e"}, SimpleCell{2, 1, "f"},
 	}
 
 	actual := matrix.Flatten()

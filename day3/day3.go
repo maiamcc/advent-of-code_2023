@@ -15,7 +15,7 @@ func main() {
 
 func partOne(inputLines []string) int {
 	total := 0
-	matrix := utils.MustMatrix(inputLines)
+	matrix := utils.MustSimpleCellMatrix(inputLines)
 	numCells := numbersForRow(matrix.Flatten()) // we can actually analyze the whole matrix at once, neat!
 	for _, num := range numCells {
 		if isPartNumber(matrix, num) {
@@ -31,7 +31,7 @@ func partOne(inputLines []string) int {
 
 func partTwo(inputLines []string) int {
 	total := 0
-	matrix := utils.MustMatrix(inputLines)
+	matrix := utils.MustSimpleCellMatrix(inputLines)
 	numCells := numbersForRow(matrix.Flatten()) // we can actually analyze the whole matrix at once, neat!
 	numsByGear := make(map[utils.Coord][]int)   // map the coord of a gear to the number(s) adjacent to it
 	for _, num := range numCells {
@@ -99,7 +99,7 @@ func dedupeCoords(coords []utils.Coord) []utils.Coord {
 }
 
 // A list of adjacent cells representing a number (with each cell represents a digit)
-type numberCells []utils.Cell
+type numberCells []utils.SimpleCell
 
 func (num numberCells) coords() []utils.Coord {
 	var coords []utils.Coord
@@ -130,10 +130,11 @@ func (num numberCells) mustInt() int {
 // representing a series of horizontally adjacent cells containing digits,
 // which together can be taken to represent a number)
 func numbersForRow(row []utils.Cell) []numberCells {
-	var allNumberCells []utils.Cell
+	var allNumberCells []utils.SimpleCell
 	for _, cell := range row {
-		if _, ok := cell.AsInt(); ok {
-			allNumberCells = append(allNumberCells, cell)
+		c := cell.(utils.SimpleCell)
+		if _, ok := c.AsInt(); ok {
+			allNumberCells = append(allNumberCells, c)
 		}
 	}
 	if len(allNumberCells) == 0 {
@@ -141,7 +142,7 @@ func numbersForRow(row []utils.Cell) []numberCells {
 	}
 
 	var numbers []numberCells
-	var curNum []utils.Cell
+	var curNum []utils.SimpleCell
 	prevXCoord := allNumberCells[0].X - 1 // make sure first loop below adds first number cell to the array
 	for _, cell := range allNumberCells {
 		if cell.X == prevXCoord+1 {
@@ -151,7 +152,7 @@ func numbersForRow(row []utils.Cell) []numberCells {
 			// otherwise, it's the start of a new number; add the number we've
 			// been accumulating to the return array and start a new one
 			numbers = append(numbers, curNum)
-			curNum = []utils.Cell{cell}
+			curNum = []utils.SimpleCell{cell}
 		}
 		prevXCoord = cell.X
 	}
@@ -168,7 +169,7 @@ func cellAtCoordHasValue(matrix utils.Matrix, coord utils.Coord, checker func(va
 		// instead of erroring out.
 		return false
 	}
-	return checker(cell.Val)
+	return checker(cell.Value())
 }
 func isSymbol(matrix utils.Matrix, coord utils.Coord) bool {
 	return cellAtCoordHasValue(matrix, coord, func(val string) bool {
@@ -192,24 +193,24 @@ func isPartNumber(matrix utils.Matrix, numCells numberCells) bool {
 
 // filterCellsWithValue returns the cells at the given coordinates IF the cell
 // contains a value as determined by the checker func.
-func filterCellsWithValue(matrix utils.Matrix, coords []utils.Coord, checker func(val string) bool) []utils.Cell {
-	var filtered []utils.Cell
+func filterCellsWithValue(matrix utils.Matrix, coords []utils.Coord, checker func(val string) bool) []utils.SimpleCell {
+	var filtered []utils.SimpleCell
 	for _, coord := range coords {
 		if cellAtCoordHasValue(matrix, coord, checker) {
 			cell, _ := matrix.GetByCoord(coord) // we just got this coord, we know it's kosher, urk
-			filtered = append(filtered, cell)
+			filtered = append(filtered, cell.(utils.SimpleCell))
 		}
 	}
 	return filtered
 }
 
-func getPossibleGearCells(matrix utils.Matrix, coords []utils.Coord) []utils.Cell {
+func getPossibleGearCells(matrix utils.Matrix, coords []utils.Coord) []utils.SimpleCell {
 	return filterCellsWithValue(matrix, coords, func(val string) bool {
 		return val == "*"
 	})
 }
 
-func adjacentGearForNum(matrix utils.Matrix, numCells numberCells) (result utils.Cell, ok bool) {
+func adjacentGearForNum(matrix utils.Matrix, numCells numberCells) (result utils.SimpleCell, ok bool) {
 	adjacentCoords := getAllAdjacentCoords(numCells.coords())
 	possibleGears := getPossibleGearCells(matrix, adjacentCoords)
 	if len(possibleGears) > 1 {
@@ -221,5 +222,5 @@ func adjacentGearForNum(matrix utils.Matrix, numCells numberCells) (result utils
 	if len(possibleGears) == 1 {
 		return possibleGears[0], true
 	}
-	return utils.Cell{}, false
+	return utils.SimpleCell{}, false
 }

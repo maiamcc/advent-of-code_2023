@@ -16,9 +16,49 @@ type Matrix struct {
 	NumCols int // aka width; NumCols - 1 = maximum allowable x value
 }
 
+type Cell interface {
+	Coordinates() Coord
+	Value() string
+}
+
+type CellConstructor func(x int, y int, val string) Cell
+
+type SimpleCell struct {
+	X   int
+	Y   int
+	Val string
+}
+
+var c Cell = SimpleCell{}
+
+func (c SimpleCell) Coordinates() Coord {
+	return Coord{c.X, c.Y}
+}
+
+func (c SimpleCell) Value() string {
+	return c.Val
+}
+
+func (c SimpleCell) AsInt() (val int, ok bool) {
+	i, err := strconv.Atoi(c.Val)
+	return i, err == nil
+}
+
+func NewSimpleCell(x int, y int, val string) Cell {
+	return SimpleCell{x, y, val}
+}
+
+func CellsAsSimpleCells(cells []Cell) []SimpleCell {
+	var res []SimpleCell
+	for _, c := range cells {
+		res = append(res, c.(SimpleCell))
+	}
+	return res
+}
+
 // NewMatrix creates a Matrix object from a list of strings, where each string
 // represents a row and each character in that string is an element in its own column.
-func NewMatrix(input []string) (Matrix, error) {
+func NewMatrix(input []string, cellCtr CellConstructor) (Matrix, error) {
 	if len(input) < 1 {
 		return Matrix{}, fmt.Errorf("need at least one row with which to construct a matrix")
 	}
@@ -32,11 +72,7 @@ func NewMatrix(input []string) (Matrix, error) {
 		}
 		var row []Cell
 		for x, ch := range strings.Split(s, "") {
-			row = append(row, Cell{
-				X:   x,
-				Y:   y,
-				Val: ch,
-			})
+			row = append(row, cellCtr(x, y, ch))
 		}
 		cells = append(cells, row)
 	}
@@ -47,20 +83,24 @@ func NewMatrix(input []string) (Matrix, error) {
 	}, nil
 }
 
-func MustMatrix(input []string) Matrix {
-	matrix, err := NewMatrix(input)
+func MustMatrix(input []string, cellCtr CellConstructor) Matrix {
+	matrix, err := NewMatrix(input, cellCtr)
 	if err != nil {
 		LogfErrorAndExit(err, "when making matrix that was definitely gonna be okay")
 	}
 	return matrix
 }
 
+func MustSimpleCellMatrix(input []string) Matrix {
+	return MustMatrix(input, NewSimpleCell)
+}
+
 func (m Matrix) Get(x int, y int) (Cell, error) {
 	if x < 0 || x >= m.NumCols {
-		return Cell{}, fmt.Errorf("invalid x value %d (must be 0 <= x <= %d)", x, m.NumCols-1)
+		return nil, fmt.Errorf("invalid x value %d (must be 0 <= x <= %d)", x, m.NumCols-1)
 	}
 	if y < 0 || y >= m.NumRows {
-		return Cell{}, fmt.Errorf("invalid y value %d (must be 0 <= y <= %d)", y, m.NumRows-1)
+		return nil, fmt.Errorf("invalid y value %d (must be 0 <= y <= %d)", y, m.NumRows-1)
 	}
 	return m.Cells[y][x], nil
 }
@@ -77,18 +117,4 @@ func (m Matrix) Flatten() []Cell {
 		cells = append(cells, row...)
 	}
 	return cells
-}
-
-type Cell struct {
-	X   int
-	Y   int
-	Val string
-}
-
-func (c Cell) Coordinates() Coord {
-	return Coord{c.X, c.Y}
-}
-func (c Cell) AsInt() (val int, ok bool) {
-	i, err := strconv.Atoi(c.Val)
-	return i, err == nil
 }
