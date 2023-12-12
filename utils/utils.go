@@ -95,6 +95,21 @@ func MustStringsToInts(s []string) []int {
 	return ints
 }
 
+func SplitStringToInts(s string, sep string) ([]int, error) {
+	strs := strings.Split(s, sep)
+	return StringsToInts(strs)
+}
+
+func MustSplitStringToInts(s string, sep string) []int {
+	strs := strings.Split(s, sep)
+	res, err := StringsToInts(strs)
+	if err != nil {
+		fmt.Printf("splitting string '%s' to ints", s)
+		os.Exit(1)
+	}
+	return res
+}
+
 func Rng(start int, end int) []int {
 	if end < start {
 		fmt.Printf("the range function doesn't work like that")
@@ -106,4 +121,11 @@ func Rng(start int, end int) []int {
 		a[i] = start + i
 	}
 	return a
+}
+
+func LastElem[E any](s []E) E {
+	if len(s) == 0 {
+		LogfAndExit("Can't get last elem of empty arr")
+	}
+	return s[len(s)-1]
 }
