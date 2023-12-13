@@ -10,6 +10,13 @@ type Coord struct {
 	// so we can store coordinate pairs outside of the context of a cell
 	X, Y int
 }
+
+// Given a coord, get the coord one step in the given cardinal direction
+func (co Coord) North() Coord { return Coord{co.X, co.Y - 1} }
+func (co Coord) South() Coord { return Coord{co.X, co.Y + 1} }
+func (co Coord) East() Coord  { return Coord{co.X + 1, co.Y} }
+func (co Coord) West() Coord  { return Coord{co.X - 1, co.Y} }
+
 type Matrix struct {
 	Cells   [][]Cell
 	NumRows int // aka height; NumRows - 1 = maximum allowable y value
