@@ -89,29 +89,22 @@ func TestGenericSet_Add(t *testing.T) {
 }
 
 func TestGenericSet_Contains(t *testing.T) {
-	is := IntSet{
-		1: struct{}{},
-		4: struct{}{},
-	}
-	assert.True(t, is.Contains(4))
-	assert.False(t, is.Contains(100))
+	set := NewSet(1, 4)
+	assert.True(t, set.Contains(4))
+	assert.False(t, set.Contains(100))
 }
 
 func TestGenericSet_Rm(t *testing.T) {
-	is := IntSet{
-		1: struct{}{},
-		4: struct{}{},
-		6: struct{}{},
-	}
-	expected := IntSet{
+	set := NewSet(1, 4)
+	expected := Set[int]{
 		1: struct{}{},
 		4: struct{}{},
 	}
 
-	is.Rm(6)
-	assert.Equal(t, expected, is)
+	set.Rm(6)
+	assert.Equal(t, expected, set)
 
 	// Removing an element not present in the set is a no-op
-	is.Rm(600)
-	assert.Equal(t, expected, is)
+	set.Rm(600)
+	assert.Equal(t, expected, set)
 }
