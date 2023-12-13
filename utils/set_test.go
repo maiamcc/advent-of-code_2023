@@ -72,23 +72,20 @@ func TestNewGenericSet(t *testing.T) {
 }
 
 func TestGenericSet_Add(t *testing.T) {
-	is := IntSet{
-		1: struct{}{},
-		4: struct{}{},
-	}
+	set := NewSet(1, 4)
 
-	expected := IntSet{
+	expected := Set[int]{
 		1: struct{}{},
 		4: struct{}{},
 		6: struct{}{},
 	}
 
-	is.Add(6)
-	assert.Equal(t, expected, is)
+	set.Add(6)
+	assert.Equal(t, expected, set)
 
 	// Adding an existing element should be a no-op
-	is.Add(4)
-	assert.Equal(t, expected, is)
+	set.Add(4)
+	assert.Equal(t, expected, set)
 }
 
 func TestGenericSet_Contains(t *testing.T) {
