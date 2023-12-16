@@ -80,7 +80,7 @@ func partTwo(inputLines []string) (int, utils.Matrix[*pipeCell]) {
 	for _, row := range matrix.Cells {
 		for _, cell := range row {
 			if cell.mark == UNKNOWN {
-				cell.radiateAndMark()
+				cell.findClusterAndMark()
 			}
 		}
 	}
@@ -115,9 +115,9 @@ func (c *pipeCell) debugStr() string {
 	if c.mark == UNKNOWN {
 		return "?"
 	} else if c.mark == INTERNAL {
-		return "I"
+		return "*"
 	} else if c.mark == EXTERNAL {
-		return "0"
+		return "x"
 	}
 	return c.val
 }
@@ -202,19 +202,77 @@ func loopCoordsFromStart(start *pipeCell) utils.Set[utils.Coord] {
 	return nil
 }
 
-// radiateAndMark radiates out adjacent cells, finding all adjacent cells that are not
+// findClusterAndMark radiates out adjacent cells, finding all adjacent cells that are not
 // the edge of the board or a part of the main loop; once all adjacent cells have been found,
 // mark them as either internal (if we didn't hit the edge of the board, just loop cells)
 // or external (if this group of cells hit the edge of the board).
-func (c *pipeCell) radiateAndMark() {
+func (c *pipeCell) findClusterAndMark() {
 	visited, anyIsEdge := c.radiateAdjacent(utils.NewSet[utils.Coord]())
-	mark := INTERNAL
-	if anyIsEdge {
-		mark = EXTERNAL
-	}
+	mark := c.markForCluster(visited, anyIsEdge)
 	markCoords(c.matrix, visited, mark)
 }
 
+// ehh this shouldn't really be a func ON a cell but yolo whatever.
+func (c *pipeCell) markForCluster(cluster utils.Set[utils.Coord], anyIsEdge bool) cellMark {
+	if anyIsEdge {
+		return EXTERNAL
+	}
+	// not obviously external, but one more check: do we pass through an odd number of
+	// loop layers on our way to the outside, an even one?
+	// Gut assumption: an even number of loop layers means this isn't actually internal, but
+	// rather fake-internal. Sigh.
+	// I thiiiink this can be in any direction we want, so let's just check north.
+	numLoopLayers := 0
+	var err error
+	curCell := c
+	for err == nil {
+		if curCell.mark == LOOP {
+			numLoopLayers += 1
+		}
+		curCell, err = c.matrix.GetByCoord(curCell.coords.North())
+	}
+	if numLoopLayers%2 == 1 {
+		return INTERNAL
+	}
+
+	curCell = c
+	err = nil
+	for err == nil {
+		if curCell.mark == LOOP {
+			numLoopLayers += 1
+		}
+		curCell, err = c.matrix.GetByCoord(curCell.coords.South())
+	}
+	if numLoopLayers%2 == 1 {
+		return INTERNAL
+	}
+
+	curCell = c
+	err = nil
+	for err == nil {
+		if curCell.mark == LOOP {
+			numLoopLayers += 1
+		}
+		curCell, err = c.matrix.GetByCoord(curCell.coords.East())
+	}
+	if numLoopLayers%2 == 1 {
+		return INTERNAL
+	}
+
+	curCell = c
+	err = nil
+	for err == nil {
+		if curCell.mark == LOOP {
+			numLoopLayers += 1
+		}
+		curCell, err = c.matrix.GetByCoord(curCell.coords.West())
+	}
+	if numLoopLayers%2 == 1 {
+		return INTERNAL
+	}
+
+	return EXTERNAL
+}
 func (c *pipeCell) radiateAdjacent(visitedSoFar utils.Set[utils.Coord]) (visited utils.Set[utils.Coord], anyIsEdge bool) {
 	visitedSoFar.Add(c.coords)
 	var foundEdge bool
