@@ -77,16 +77,14 @@ func partTwo(inputLines []string) int {
 	findAndMarkLoop(start)
 	for _, row := range matrix.Cells {
 		for _, cell := range row {
-			pc := cell.(pipeCell)
-			if pc.mark == UNKNOWN {
-				pc.radiateAndMark()
+			if cell.mark == UNKNOWN {
+				cell.radiateAndMark()
 			}
 		}
 	}
 	count := 0
 	for _, cell := range matrix.Flatten() {
-		pc := cell.(pipeCell)
-		if pc.mark == INTERNAL {
+		if cell.mark == INTERNAL {
 			count += 1
 		}
 	}
@@ -97,7 +95,7 @@ type pipeCell struct {
 	coords      utils.Coord
 	val         string
 	connections utils.Set[utils.Coord]
-	matrix      *utils.Matrix // each cell points back to its containing matrix
+	matrix      *utils.Matrix[pipeCell] // each cell points back to its containing matrix
 	mark        cellMark
 }
 
@@ -111,7 +109,7 @@ func (c pipeCell) Value() string {
 	return c.val
 }
 
-func NewPipeCell(x int, y int, val string) utils.Cell {
+func NewPipeCell(x int, y int, val string) pipeCell {
 	coords := utils.Coord{X: x, Y: y}
 	getConns, ok := PIPE_TO_CONNECTIONS[val]
 	if !ok {
@@ -147,7 +145,7 @@ func (c pipeCell) step(from utils.Coord) (pipeCell, bool) {
 	if err != nil {
 		return pipeCell{}, false
 	}
-	return toCell.(pipeCell), true
+	return toCell, true
 }
 
 // isLoop determines whether starting from cell c and stepping to the
@@ -158,11 +156,10 @@ func (c pipeCell) isLoop(firstStep utils.Coord) (loopCoords utils.Set[utils.Coor
 
 	loopCoords = utils.NewSet[utils.Coord](c.coords)
 	prevCell := c
-	curCellGeneric, err := c.matrix.GetByCoord(firstStep)
+	curCell, err := c.matrix.GetByCoord(firstStep)
 	if err != nil {
 		utils.LogfErrorAndExit(err, "getting expected cell as first step of loop")
 	}
-	curCell := curCellGeneric.(pipeCell)
 	var nextCell pipeCell
 	ok := true
 	for ok {
@@ -214,29 +211,27 @@ func (c pipeCell) radiateAdjacent(visitedSoFar utils.Set[utils.Coord]) (visited 
 			anyIsEdge = true
 			continue
 		}
-		pc := cell.(pipeCell)
-		if pc.mark == LOOP {
+		if cell.mark == LOOP {
 			// don't have to radiate from this cell as it's part of the loop
 			continue
 		}
-		visitedSoFar, foundEdge = pc.radiateAdjacent(visitedSoFar)
+		visitedSoFar, foundEdge = cell.radiateAdjacent(visitedSoFar)
 		anyIsEdge = anyIsEdge || foundEdge
 	}
 	return visitedSoFar, anyIsEdge
 }
 
-func matrixFromInput(input []string) (utils.Matrix, pipeCell) {
-	m := utils.MustMatrix(input, NewPipeCell)
+func matrixFromInput(input []string) (utils.Matrix[pipeCell], pipeCell) {
+	m := utils.MustMatrix[pipeCell](input, NewPipeCell)
 	var startCell pipeCell
 	// attach reference to the parent matrix to each cell,
 	// and also grab the "S" cell.
 	for y, row := range m.Cells {
 		for x, cell := range row {
-			pc := cell.(pipeCell)
-			pc.matrix = &m
-			row[x] = pc
-			if pc.isStart() {
-				startCell = pc
+			cell.matrix = &m
+			row[x] = cell
+			if cell.isStart() {
+				startCell = cell
 			}
 		}
 		m.Cells[y] = row
@@ -252,16 +247,15 @@ func findAndMarkLoop(start pipeCell) {
 	markCoords(start.matrix, loopCoords, LOOP)
 }
 
-func markCoords(matrix *utils.Matrix, coords utils.Set[utils.Coord], mark cellMark) {
+func markCoords(matrix *utils.Matrix[pipeCell], coords utils.Set[utils.Coord], mark cellMark) {
 	for coord, _ := range coords {
 		cell, err := matrix.GetByCoord(coord)
 		if err != nil {
 			utils.LogfErrorAndExit(err, "didn't expect an invalid coord in call to `markCoords`")
 		}
-		pc := cell.(pipeCell)
-		pc.mark = mark
+		cell.mark = mark
 
 		// rather than wrestle with pointer magic, just put the cell back in the matrix i guess?!
-		matrix.Cells[coord.Y][coord.X] = pc
+		matrix.Cells[coord.Y][coord.X] = cell
 	}
 }

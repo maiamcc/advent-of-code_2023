@@ -13,7 +13,7 @@ func TestNewMatrix(t *testing.T) {
 		"ghi",
 		"jkl",
 	}
-	expectedCells := [][]Cell{
+	expectedCells := [][]SimpleCell{
 		{SimpleCell{0, 0, "a"}, SimpleCell{1, 0, "b"}, SimpleCell{2, 0, "c"}},
 		{SimpleCell{0, 1, "d"}, SimpleCell{1, 1, "e"}, SimpleCell{2, 1, "f"}},
 		{SimpleCell{0, 2, "g"}, SimpleCell{1, 2, "h"}, SimpleCell{2, 2, "i"}},
@@ -76,7 +76,7 @@ func TestMatrix_Flatten(t *testing.T) {
 			"abc",
 			"def",
 		})
-	expected := []Cell{
+	expected := []SimpleCell{
 		SimpleCell{0, 0, "a"}, SimpleCell{1, 0, "b"}, SimpleCell{2, 0, "c"},
 		SimpleCell{0, 1, "d"}, SimpleCell{1, 1, "e"}, SimpleCell{2, 1, "f"},
 	}

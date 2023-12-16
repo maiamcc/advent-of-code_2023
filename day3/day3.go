@@ -129,10 +129,9 @@ func (num numberCells) mustInt() int {
 // numbersForRow returns an array of Cell arrays (each of the latter
 // representing a series of horizontally adjacent cells containing digits,
 // which together can be taken to represent a number)
-func numbersForRow(row []utils.Cell) []numberCells {
+func numbersForRow(row []utils.SimpleCell) []numberCells {
 	var allNumberCells []utils.SimpleCell
-	for _, cell := range row {
-		c := cell.(utils.SimpleCell)
+	for _, c := range row {
 		if _, ok := c.AsInt(); ok {
 			allNumberCells = append(allNumberCells, c)
 		}
@@ -161,7 +160,7 @@ func numbersForRow(row []utils.Cell) []numberCells {
 	return numbers
 }
 
-func cellAtCoordHasValue(matrix utils.Matrix, coord utils.Coord, checker func(val string) bool) bool {
+func cellAtCoordHasValue(matrix utils.Matrix[utils.SimpleCell], coord utils.Coord, checker func(val string) bool) bool {
 	cell, err := matrix.GetByCoord(coord)
 	if err != nil {
 		// ehh, implementation is such that we might get passed bunk coordinates from our
@@ -171,13 +170,13 @@ func cellAtCoordHasValue(matrix utils.Matrix, coord utils.Coord, checker func(va
 	}
 	return checker(cell.Value())
 }
-func isSymbol(matrix utils.Matrix, coord utils.Coord) bool {
+func isSymbol(matrix utils.Matrix[utils.SimpleCell], coord utils.Coord) bool {
 	return cellAtCoordHasValue(matrix, coord, func(val string) bool {
 		return !unicode.IsNumber(utils.MustRune(val)) && val != "."
 	})
 }
 
-func anyIsSymbol(matrix utils.Matrix, coords []utils.Coord) bool {
+func anyIsSymbol(matrix utils.Matrix[utils.SimpleCell], coords []utils.Coord) bool {
 	for _, coord := range coords {
 		if isSymbol(matrix, coord) {
 			return true
@@ -186,31 +185,31 @@ func anyIsSymbol(matrix utils.Matrix, coords []utils.Coord) bool {
 	return false
 }
 
-func isPartNumber(matrix utils.Matrix, numCells numberCells) bool {
+func isPartNumber(matrix utils.Matrix[utils.SimpleCell], numCells numberCells) bool {
 	adjacentCoords := getAllAdjacentCoords(numCells.coords())
 	return anyIsSymbol(matrix, adjacentCoords)
 }
 
 // filterCellsWithValue returns the cells at the given coordinates IF the cell
 // contains a value as determined by the checker func.
-func filterCellsWithValue(matrix utils.Matrix, coords []utils.Coord, checker func(val string) bool) []utils.SimpleCell {
+func filterCellsWithValue(matrix utils.Matrix[utils.SimpleCell], coords []utils.Coord, checker func(val string) bool) []utils.SimpleCell {
 	var filtered []utils.SimpleCell
 	for _, coord := range coords {
 		if cellAtCoordHasValue(matrix, coord, checker) {
 			cell, _ := matrix.GetByCoord(coord) // we just got this coord, we know it's kosher, urk
-			filtered = append(filtered, cell.(utils.SimpleCell))
+			filtered = append(filtered, cell)
 		}
 	}
 	return filtered
 }
 
-func getPossibleGearCells(matrix utils.Matrix, coords []utils.Coord) []utils.SimpleCell {
+func getPossibleGearCells(matrix utils.Matrix[utils.SimpleCell], coords []utils.Coord) []utils.SimpleCell {
 	return filterCellsWithValue(matrix, coords, func(val string) bool {
 		return val == "*"
 	})
 }
 
-func adjacentGearForNum(matrix utils.Matrix, numCells numberCells) (result utils.SimpleCell, ok bool) {
+func adjacentGearForNum(matrix utils.Matrix[utils.SimpleCell], numCells numberCells) (result utils.SimpleCell, ok bool) {
 	adjacentCoords := getAllAdjacentCoords(numCells.coords())
 	possibleGears := getPossibleGearCells(matrix, adjacentCoords)
 	if len(possibleGears) > 1 {

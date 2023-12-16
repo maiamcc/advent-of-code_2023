@@ -169,7 +169,7 @@ func TestAnyIsSymbol(t *testing.T) {
 
 	for y, expected := range cases {
 		t.Run(sourceStrings[y], func(t *testing.T) {
-			row := utils.CellsAsSimpleCells(matrix.Cells[y])
+			row := matrix.Cells[y]
 			coords := numberCells(row).coords() // cheating, borrowing method off numberCells
 			assert.Equal(t, expected, anyIsSymbol(matrix, coords))
 		})
@@ -197,7 +197,7 @@ func TestGetPossibleGearCells(t *testing.T) {
 
 	for y, expected := range cases {
 		t.Run(sourceStrings[y], func(t *testing.T) {
-			row := utils.CellsAsSimpleCells(matrix.Cells[y])
+			row := matrix.Cells[y]
 			coords := numberCells(row).coords() // cheating, borrowing method off numberCells
 			assert.Equal(t, expected, getPossibleGearCells(matrix, coords))
 		})

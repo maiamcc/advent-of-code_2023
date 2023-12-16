@@ -36,7 +36,7 @@ func TestMatrixFromInput(t *testing.T) {
 	expectedTwoOne := pipeCell{
 		coords:      utils.Coord{X: 2, Y: 1},
 		val:         "J",
-		connections: utils.NewSet[utils.Coord](utils.Coord{2, 0}, utils.Coord{1, 1}),
+		connections: utils.NewSet[utils.Coord](utils.Coord{2, 0}, utils.Coord{X: 1, Y: 1}),
 		matrix:      &actualMatrix,
 	}
 
@@ -84,9 +84,8 @@ func TestIsLoop(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			startCellGeneric, err := matrix.GetByCoord(c.start)
+			startCell, err := matrix.GetByCoord(c.start)
 			assert.Nil(t, err)
-			startCell := startCellGeneric.(pipeCell)
 			actualLoopCoords, actualIsLoop := startCell.isLoop(c.firstStep)
 			assert.Equal(t, c.expectedSteps, len(actualLoopCoords))
 			assert.Equal(t, c.expectedSteps != 0, actualIsLoop)
@@ -106,15 +105,14 @@ func TestFindAndMarkLoop(t *testing.T) {
 
 	findAndMarkLoop(start)
 	for _, cell := range matrix.Flatten() {
-		pc := cell.(pipeCell)
 		expectedMark := UNKNOWN
-		if expectedLoopCoords.Contains(pc.coords) {
+		if expectedLoopCoords.Contains(cell.coords) {
 			expectedMark = LOOP
 		}
-		assert.Equal(t, expectedMark, pc.mark,
+		assert.Equal(t, expectedMark, cell.mark,
 			"expected mark %s but got %s (cell at (%d,%d) with value '%s')",
-			expectedMark.toString(), pc.mark.toString(),
-			pc.coords.X, pc.coords.Y, pc.val)
+			expectedMark.toString(), cell.mark.toString(),
+			cell.coords.X, cell.coords.Y, cell.val)
 	}
 }
 
@@ -173,8 +171,7 @@ func TestRadiateAdacent(t *testing.T) {
 			start, err := m.GetByCoord(c.start)
 			assert.Nil(t, err)
 
-			startCell := start.(pipeCell)
-			actualVisited, actualAnyIsEdge := startCell.radiateAdjacent(utils.NewSet[utils.Coord]())
+			actualVisited, actualAnyIsEdge := start.radiateAdjacent(utils.NewSet[utils.Coord]())
 			assert.Equal(t, c.expectedVisited, actualVisited)
 			assert.Equal(t, c.expectedAnyIsEdge, actualAnyIsEdge)
 		})
