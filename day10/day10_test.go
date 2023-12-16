@@ -16,11 +16,23 @@ func TestPartOne(t *testing.T) {
 }
 
 func TestPartTwo(t *testing.T) {
-	inputStr := "...........\n.S-------7.\n.|F-----7|.\n.||.....||.\n.||.....||.\n.|L-7.F-J|.\n.|..|.|..|.\n.L--J.L--J.\n..........."
-	inputLns := strings.Split(inputStr, "\n")
+	cases := map[string]int{ // map input to expected output
+		"...........\n.S-------7.\n.|F-----7|.\n.||.....||.\n.||.....||.\n.|L-7.F-J|.\n.|..|.|..|.\n.L--J.L--J.\n...........":                                                                                                        4,
+		"..........\n.S------7.\n.|F----7|.\n.||....||.\n.||....||.\n.|L-7F-J|.\n.|..||..|.\n.L--JL--J.\n..........":                                                                                                                 4,
+		".F----7F7F7F7F-7....\n.|F--7||||||||FJ....\n.||.FJ||||||||L7....\nFJL7L7LJLJ||LJ.L-7..\nL--J.L7...LJS7F-7L7.\n....F-J..F7FJ|L7L7L7\n....L7.F7||L7|.L7L7|\n.....|FJLJ|FJ|F7|.LJ\n....FJL-7.||.||||...\n....L---J.LJ.LJLJ...": 8,
+		"FF7FSF7F7F7F7F7F---7\nL|LJ||||||||||||F--J\nFL-7LJLJ||||||LJL-77\nF--JF--7||LJLJ7F7FJ-\nL---JF-JLJ.||-FJLJJ7\n|F|F-JF---7F7-L7L|7|\n|FFJF7L7F-JF7|JL---7\n7-L-JL7||F7|L7F-7F7|\nL.L7LFJ|||||FJL7||LJ\nL7JLJL-JLJLJL--JLJ.L": 10,
+	}
 
-	actual := partTwo(inputLns)
-	assert.Equal(t, 4, actual)
+	for input, expected := range cases {
+		t.Run(input, func(t *testing.T) {
+			inputLns := strings.Split(input, "\n")
+
+			actual, matrix := partTwo(inputLns)
+			if !assert.Equal(t, expected, actual) {
+				debugPrint(matrix)
+			}
+		})
+	}
 }
 
 func TestMatrixFromInput(t *testing.T) {

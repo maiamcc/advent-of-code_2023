@@ -63,7 +63,9 @@ func (cm cellMark) toString() string {
 func main() {
 	inputLines := utils.MustReadFileAsLines("day10/input.txt")
 	fmt.Println("The answer to Part One is:", partOne(inputLines))
-	fmt.Println("The answer to Part Two is:", partTwo(inputLines))
+
+	ans, _ := partTwo(inputLines)
+	fmt.Println("The answer to Part Two is:", ans)
 }
 
 func partOne(inputLines []string) int {
@@ -72,7 +74,7 @@ func partOne(inputLines []string) int {
 	return len(loopCoords) / 2
 }
 
-func partTwo(inputLines []string) int {
+func partTwo(inputLines []string) (int, utils.Matrix[*pipeCell]) {
 	matrix, start := matrixFromInput(inputLines)
 	findAndMarkLoop(start)
 	for _, row := range matrix.Cells {
@@ -88,7 +90,7 @@ func partTwo(inputLines []string) int {
 			count += 1
 		}
 	}
-	return count
+	return count, matrix
 }
 
 type pipeCell struct {
@@ -106,6 +108,17 @@ func (c *pipeCell) Coordinates() utils.Coord {
 }
 
 func (c *pipeCell) Value() string {
+	return c.val
+}
+
+func (c *pipeCell) debugStr() string {
+	if c.mark == UNKNOWN {
+		return "?"
+	} else if c.mark == INTERNAL {
+		return "I"
+	} else if c.mark == EXTERNAL {
+		return "0"
+	}
 	return c.val
 }
 
@@ -158,7 +171,9 @@ func (c *pipeCell) isLoop(firstStep utils.Coord) (loopCoords utils.Set[utils.Coo
 	prevCell := c
 	curCell, err := c.matrix.GetByCoord(firstStep)
 	if err != nil {
-		utils.LogfErrorAndExit(err, "getting expected cell as first step of loop")
+		// we fell off the edge when attempting to start the loop in this direction,
+		// so this sure isn't a valid loop
+		return utils.NewSet[utils.Coord](), false
 	}
 	var nextCell *pipeCell
 	ok := true
@@ -257,5 +272,15 @@ func markCoords(matrix *utils.Matrix[*pipeCell], coords utils.Set[utils.Coord], 
 			utils.LogfErrorAndExit(err, "didn't expect an invalid coord in call to `markCoords`")
 		}
 		cell.mark = mark
+	}
+}
+
+func debugPrint(matrix utils.Matrix[*pipeCell]) {
+	for _, row := range matrix.Cells {
+		var printRow []string
+		for _, cell := range row {
+			printRow = append(printRow, cell.debugStr())
+		}
+		fmt.Println(printRow)
 	}
 }
