@@ -40,7 +40,7 @@ func TestMatrixFromInput(t *testing.T) {
 		matrix:      &actualMatrix,
 	}
 
-	assert.Equal(t, expectedTwoOne, actualTwoOne)
+	assert.Equal(t, &expectedTwoOne, actualTwoOne)
 	assert.Equal(t, utils.Coord{0, 2}, actualStart.coords)
 	assert.Equal(t, utils.NewSet[utils.Coord](), actualStart.connections)
 }
