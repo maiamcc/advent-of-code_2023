@@ -36,6 +36,30 @@ var PIPE_TO_CONNECTIONS = map[string]func(c utils.Coord) utils.Set[utils.Coord]{
 	"S": func(c utils.Coord) utils.Set[utils.Coord] { return utils.NewSet[utils.Coord]() },
 }
 
+type cellMark int
+
+const (
+	UNKNOWN cellMark = iota
+	LOOP
+	INTERNAL
+	EXTERNAL
+)
+
+func (cm cellMark) toString() string {
+	switch cm {
+	case UNKNOWN:
+		return "UNKNOWN"
+	case LOOP:
+		return "LOOP"
+	case INTERNAL:
+		return "INTERNAL"
+	case EXTERNAL:
+		return "EXTERNAL"
+	default:
+		return "[invalid type]"
+	}
+}
+
 func main() {
 	inputLines := utils.MustReadFileAsLines("day10/input.txt")
 	fmt.Println("The answer to Part One is:", partOne(inputLines))
@@ -44,21 +68,29 @@ func main() {
 
 func partOne(inputLines []string) int {
 	_, start := matrixFromInput(inputLines)
-	possibleDirs := []utils.Coord{
-		start.coords.North(), start.coords.South(),
-		start.coords.East(), start.coords.West(),
-	}
-	for _, dir := range possibleDirs {
-		numSteps, isLoop := start.isLoop(dir)
-		if isLoop {
-			return numSteps/2 + 1
-		}
-	}
-	return 0
+	loopCoords := loopCoordsFromStart(start)
+	return len(loopCoords) / 2
 }
 
 func partTwo(inputLines []string) int {
-	return len(inputLines)
+	matrix, start := matrixFromInput(inputLines)
+	findAndMarkLoop(start)
+	for _, row := range matrix.Cells {
+		for _, cell := range row {
+			pc := cell.(pipeCell)
+			if pc.mark == UNKNOWN {
+				pc.radiateAndMark()
+			}
+		}
+	}
+	count := 0
+	for _, cell := range matrix.Flatten() {
+		pc := cell.(pipeCell)
+		if pc.mark == INTERNAL {
+			count += 1
+		}
+	}
+	return count
 }
 
 type pipeCell struct {
@@ -66,6 +98,7 @@ type pipeCell struct {
 	val         string
 	connections utils.Set[utils.Coord]
 	matrix      *utils.Matrix // each cell points back to its containing matrix
+	mark        cellMark
 }
 
 var c utils.Cell = pipeCell{}
@@ -120,8 +153,10 @@ func (c pipeCell) step(from utils.Coord) (pipeCell, bool) {
 // isLoop determines whether starting from cell c and stepping to the
 // cell at firstStep and continuing on from there will result in a loop
 // i.e. will bring us back to cell c).
-func (c pipeCell) isLoop(firstStep utils.Coord) (numSteps int, isLoop bool) {
-	// todo: check if firstStep is adjacent to c
+func (c pipeCell) isLoop(firstStep utils.Coord) (loopCoords utils.Set[utils.Coord], isLoop bool) {
+	// Assume that firstStep is adjacent to the current cell I guess
+
+	loopCoords = utils.NewSet[utils.Coord](c.coords)
 	prevCell := c
 	curCellGeneric, err := c.matrix.GetByCoord(firstStep)
 	if err != nil {
@@ -132,15 +167,64 @@ func (c pipeCell) isLoop(firstStep utils.Coord) (numSteps int, isLoop bool) {
 	ok := true
 	for ok {
 		nextCell, ok = curCell.step(prevCell.coords)
-		numSteps += 1
 		prevCell = curCell
+		loopCoords.Add(curCell.coords)
 		curCell = nextCell
 		if curCell.coords == c.coords {
-			return numSteps, true
+			return loopCoords, true
 		}
 	}
-	return 0, false
+	return utils.NewSet[utils.Coord](), false
 }
+
+func loopCoordsFromStart(start pipeCell) utils.Set[utils.Coord] {
+	for _, dir := range start.coords.CardinalAdjacent() {
+		loopCoords, isLoop := start.isLoop(dir)
+		if isLoop {
+			return loopCoords
+		}
+	}
+	return nil
+}
+
+// radiateAndMark radiates out adjacent cells, finding all adjacent cells that are not
+// the edge of the board or a part of the main loop; once all adjacent cells have been found,
+// mark them as either internal (if we didn't hit the edge of the board, just loop cells)
+// or external (if this group of cells hit the edge of the board).
+func (c pipeCell) radiateAndMark() {
+	visited, anyIsEdge := c.radiateAdjacent(utils.NewSet[utils.Coord]())
+	mark := INTERNAL
+	if anyIsEdge {
+		mark = EXTERNAL
+	}
+	markCoords(c.matrix, visited, mark)
+}
+
+func (c pipeCell) radiateAdjacent(visitedSoFar utils.Set[utils.Coord]) (visited utils.Set[utils.Coord], anyIsEdge bool) {
+	visitedSoFar.Add(c.coords)
+	var foundEdge bool
+	for _, coord := range c.coords.CardinalAdjacent() {
+		if visitedSoFar.Contains(coord) {
+			continue
+		}
+		cell, err := c.matrix.GetByCoord(coord)
+		if err != nil {
+			// index out of range error = we just attempted to "get" a cell outside the grid;
+			// i.e. the requested coord was off the grid, i.e. current cell is on the edge.
+			anyIsEdge = true
+			continue
+		}
+		pc := cell.(pipeCell)
+		if pc.mark == LOOP {
+			// don't have to radiate from this cell as it's part of the loop
+			continue
+		}
+		visitedSoFar, foundEdge = pc.radiateAdjacent(visitedSoFar)
+		anyIsEdge = anyIsEdge || foundEdge
+	}
+	return visitedSoFar, anyIsEdge
+}
+
 func matrixFromInput(input []string) (utils.Matrix, pipeCell) {
 	m := utils.MustMatrix(input, NewPipeCell)
 	var startCell pipeCell
@@ -161,15 +245,23 @@ func matrixFromInput(input []string) (utils.Matrix, pipeCell) {
 	return m, startCell
 }
 
-/*
-- refactor Matrix to take a cell creator and make cell an interface i guess?? or just make a new matrix class
-- every cell has 0 or two dest cells
-- cell.step(from coord) -- `from` must be one of the cell's two connection coords. if so, return the cell at the other dest coord
-	- e.g. the cell at 1,1 connects to 1,0 and 2,1 (i.e. connects north and east): cell.step(from 1,1) returns the cell at 2,1
-	(you entered at 1,1 so you exit at 2,1)
-- given a [][]string, loop thru to make a Matrix --> [][]cell where every cell knows its connection coords, and also save S cell
-- from the S cell, check N S E and W for valid connecting cells (i.e. a cell that includes S as one of its connections)
-- for each valid cell connecting to S, check for a loop: step to next until you hit S again, or a dead end (i.e. period) (and count the steps it takes you)
-- once you find your loop, which takes n steps, go n/2 steps through the loop and return that cell.
-	- will it ever be an odd number of steps?? shrug.
-*/
+// findAndMarkLoop finds the cells that are part of the loop starting at the given
+// start location and marks them with mark = LOOP.
+func findAndMarkLoop(start pipeCell) {
+	loopCoords := loopCoordsFromStart(start)
+	markCoords(start.matrix, loopCoords, LOOP)
+}
+
+func markCoords(matrix *utils.Matrix, coords utils.Set[utils.Coord], mark cellMark) {
+	for coord, _ := range coords {
+		cell, err := matrix.GetByCoord(coord)
+		if err != nil {
+			utils.LogfErrorAndExit(err, "didn't expect an invalid coord in call to `markCoords`")
+		}
+		pc := cell.(pipeCell)
+		pc.mark = mark
+
+		// rather than wrestle with pointer magic, just put the cell back in the matrix i guess?!
+		matrix.Cells[coord.Y][coord.X] = pc
+	}
+}

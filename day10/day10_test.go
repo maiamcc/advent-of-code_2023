@@ -16,11 +16,11 @@ func TestPartOne(t *testing.T) {
 }
 
 func TestPartTwo(t *testing.T) {
-	inputStr := "input\ngoes\nhere"
+	inputStr := "...........\n.S-------7.\n.|F-----7|.\n.||.....||.\n.||.....||.\n.|L-7.F-J|.\n.|..|.|..|.\n.L--J.L--J.\n..........."
 	inputLns := strings.Split(inputStr, "\n")
 
 	actual := partTwo(inputLns)
-	assert.Equal(t, 123, actual)
+	assert.Equal(t, 4, actual)
 }
 
 func TestMatrixFromInput(t *testing.T) {
@@ -63,12 +63,12 @@ func TestIsLoop(t *testing.T) {
 		{"start from start one dir - loop",
 			start.coords,
 			utils.Coord{1, 2},
-			15,
+			16,
 		},
 		{"start from start other dir - loop",
 			start.coords,
 			utils.Coord{0, 3},
-			15,
+			16,
 		},
 		{"start from start wrong dir - no loop",
 			start.coords,
@@ -87,9 +87,96 @@ func TestIsLoop(t *testing.T) {
 			startCellGeneric, err := matrix.GetByCoord(c.start)
 			assert.Nil(t, err)
 			startCell := startCellGeneric.(pipeCell)
-			actualSteps, actualIsLoop := startCell.isLoop(c.firstStep)
-			assert.Equal(t, c.expectedSteps, actualSteps)
+			actualLoopCoords, actualIsLoop := startCell.isLoop(c.firstStep)
+			assert.Equal(t, c.expectedSteps, len(actualLoopCoords))
 			assert.Equal(t, c.expectedSteps != 0, actualIsLoop)
+		})
+	}
+}
+
+func TestFindAndMarkLoop(t *testing.T) {
+	inputStr := ".....\n.S-7.\n.|.|.\n.L-J.\n....."
+	matrix, start := matrixFromInput(strings.Split(inputStr, "\n"))
+
+	expectedLoopCoords := utils.NewSet[utils.Coord](
+		utils.Coord{1, 1}, utils.Coord{2, 1}, utils.Coord{3, 1},
+		utils.Coord{1, 2}, utils.Coord{3, 2},
+		utils.Coord{1, 3}, utils.Coord{2, 3}, utils.Coord{3, 3},
+	)
+
+	findAndMarkLoop(start)
+	for _, cell := range matrix.Flatten() {
+		pc := cell.(pipeCell)
+		expectedMark := UNKNOWN
+		if expectedLoopCoords.Contains(pc.coords) {
+			expectedMark = LOOP
+		}
+		assert.Equal(t, expectedMark, pc.mark,
+			"expected mark %s but got %s (cell at (%d,%d) with value '%s')",
+			expectedMark.toString(), pc.mark.toString(),
+			pc.coords.X, pc.coords.Y, pc.val)
+	}
+}
+
+func TestRadiateAdacent(t *testing.T) {
+	cases := []struct {
+		name              string
+		input             string
+		start             utils.Coord
+		loopCoords        utils.Set[utils.Coord]
+		expectedVisited   utils.Set[utils.Coord]
+		expectedAnyIsEdge bool
+	}{
+		{"small grid only edges",
+			"..\n..",
+			utils.Coord{0, 0},
+			utils.NewSet[utils.Coord](),
+			utils.NewSet[utils.Coord](
+				utils.Coord{0, 0}, utils.Coord{1, 0},
+				utils.Coord{0, 1}, utils.Coord{1, 1},
+			),
+			true,
+		},
+		{"ignore loop tiles",
+			"...\n.L.\n.L.",
+			utils.Coord{0, 0},
+			utils.NewSet[utils.Coord](
+				utils.Coord{1, 1}, utils.Coord{1, 2},
+			),
+			utils.NewSet[utils.Coord](
+				utils.Coord{0, 0}, utils.Coord{1, 0}, utils.Coord{2, 0},
+				utils.Coord{0, 1}, utils.Coord{2, 1},
+				utils.Coord{0, 2}, utils.Coord{2, 2},
+			),
+			true,
+		},
+		{"internal",
+			"LLLLL\nL...L\nLLLLL",
+			utils.Coord{2, 1},
+			utils.NewSet[utils.Coord](
+				utils.Coord{0, 0}, utils.Coord{1, 0}, utils.Coord{2, 0}, utils.Coord{3, 0}, utils.Coord{4, 0},
+				utils.Coord{0, 1}, utils.Coord{4, 1},
+				utils.Coord{0, 2}, utils.Coord{1, 2}, utils.Coord{2, 2}, utils.Coord{3, 2}, utils.Coord{4, 2},
+			),
+			utils.NewSet[utils.Coord](
+				utils.Coord{1, 1}, utils.Coord{2, 1}, utils.Coord{3, 1},
+			),
+			false,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			m, _ := matrixFromInput(strings.Split(c.input, "\n"))
+			markCoords(&m, c.loopCoords, LOOP) // setup: mark specified cells as part of the loop
+
+			start, err := m.GetByCoord(c.start)
+			assert.Nil(t, err)
+
+			startCell := start.(pipeCell)
+			actualVisited, actualAnyIsEdge := startCell.radiateAdjacent(utils.NewSet[utils.Coord]())
+			assert.Equal(t, c.expectedVisited, actualVisited)
+			assert.Equal(t, c.expectedAnyIsEdge, actualAnyIsEdge)
 		})
 	}
 }

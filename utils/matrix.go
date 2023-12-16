@@ -16,6 +16,9 @@ func (co Coord) North() Coord { return Coord{co.X, co.Y - 1} }
 func (co Coord) South() Coord { return Coord{co.X, co.Y + 1} }
 func (co Coord) East() Coord  { return Coord{co.X + 1, co.Y} }
 func (co Coord) West() Coord  { return Coord{co.X - 1, co.Y} }
+func (co Coord) CardinalAdjacent() []Coord {
+	return []Coord{co.North(), co.South(), co.East(), co.West()}
+}
 
 type Matrix struct {
 	Cells   [][]Cell
