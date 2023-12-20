@@ -221,58 +221,59 @@ func (c *pipeCell) markForCluster(cluster utils.Set[utils.Coord], anyIsEdge bool
 	// loop layers on our way to the outside, an even one?
 	// Gut assumption: an even number of loop layers means this isn't actually internal, but
 	// rather fake-internal. Sigh.
-	// I thiiiink this can be in any direction we want, so let's just check north.
-	numLoopLayers := 0
-	var err error
-	curCell := c
-	for err == nil {
-		if curCell.mark == LOOP {
-			numLoopLayers += 1
-		}
-		curCell, err = c.matrix.GetByCoord(curCell.coords.North())
-	}
-	if numLoopLayers%2 == 1 {
-		return INTERNAL
-	}
-
-	curCell = c
-	err = nil
-	for err == nil {
-		if curCell.mark == LOOP {
-			numLoopLayers += 1
-		}
-		curCell, err = c.matrix.GetByCoord(curCell.coords.South())
-	}
-	if numLoopLayers%2 == 1 {
-		return INTERNAL
-	}
-
-	curCell = c
-	err = nil
-	for err == nil {
-		if curCell.mark == LOOP {
-			numLoopLayers += 1
-		}
-		curCell, err = c.matrix.GetByCoord(curCell.coords.East())
-	}
-	if numLoopLayers%2 == 1 {
-		return INTERNAL
-	}
-
-	curCell = c
-	err = nil
-	for err == nil {
-		if curCell.mark == LOOP {
-			numLoopLayers += 1
-		}
-		curCell, err = c.matrix.GetByCoord(curCell.coords.West())
-	}
-	if numLoopLayers%2 == 1 {
+	//
+	if c.isReallyInternal() {
 		return INTERNAL
 	}
 
 	return EXTERNAL
+	//for coord, _ := range cluster {
+	//	cell, err := c.matrix.GetByCoord(coord)
+	//	if err != nil {
+	//		utils.LogfErrorAndExit(err, "unexpected invalid cell")
+	//	}
+	//	if !cell.isReallyInternal() {
+	//		return EXTERNAL
+	//	}
+	//}
+	//
+	//return INTERNAL
 }
+
+func (c *pipeCell) countLoopCellsInLine(nextCellGetter func(c *pipeCell) (*pipeCell, error)) int {
+	numLoopCells := 0
+	curCell := c
+	prevCell := c
+	var err error
+	for err == nil {
+		if curCell.mark == LOOP && !prevCell.connections.Contains(curCell.coords) {
+			numLoopCells += 1
+		}
+		prevCell = curCell
+		curCell, err = nextCellGetter(curCell)
+	}
+	return numLoopCells
+}
+
+// cellIsReallyInternal determines whether a cell that is trivially internal (part of
+// a cluster that has loop cells on all sides) is ACTUALLY internal, or just secretly
+// external (chillin' within loop cells but not WITHIN THE LOOP)
+func (c *pipeCell) isReallyInternal() bool {
+	for _, nextCellGetter := range []func(c *pipeCell) (*pipeCell, error){
+		func(c *pipeCell) (*pipeCell, error) { return c.matrix.GetByCoord(c.coords.North()) },
+		func(c *pipeCell) (*pipeCell, error) { return c.matrix.GetByCoord(c.coords.South()) },
+		func(c *pipeCell) (*pipeCell, error) { return c.matrix.GetByCoord(c.coords.East()) },
+		func(c *pipeCell) (*pipeCell, error) { return c.matrix.GetByCoord(c.coords.West()) },
+	} {
+		numLoopLayers := c.countLoopCellsInLine(nextCellGetter)
+		if numLoopLayers%2 == 1 {
+			// odd number of layers of loop -- the cell is internal
+			return true
+		}
+	}
+	return false
+}
+
 func (c *pipeCell) radiateAdjacent(visitedSoFar utils.Set[utils.Coord]) (visited utils.Set[utils.Coord], anyIsEdge bool) {
 	visitedSoFar.Add(c.coords)
 	var foundEdge bool
